@@ -179,6 +179,9 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
                     }
                 }
             }
+            catch (OperationCanceledException)
+            {
+            }
             catch (Exception ex)
             {
                 Debug.LogException(ex);
