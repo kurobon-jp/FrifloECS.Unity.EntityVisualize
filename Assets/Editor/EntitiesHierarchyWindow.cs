@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Friflo.Engine.ECS;
 using UnityEditor;
@@ -16,10 +17,29 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
     internal sealed class EntitiesHierarchyWindow : EditorWindow
     {
         /// <summary>
-        /// The root items
+        /// The refresh state enum
         /// </summary>
-        private readonly List<TreeViewItemData<Item>> _rootItems = new();
+        enum RefreshState
+        {
+            /// <summary>
+            /// The idle refresh state
+            /// </summary>
+            Idle,
 
+            /// <summary>
+            /// The refreshing refresh state
+            /// </summary>
+            Refreshing,
+
+            /// <summary>
+            /// The complete refresh state
+            /// </summary>
+            Complete
+        }
+
+        /// <summary>
+        /// The inspector
+        /// </summary>
         [NonSerialized] private EntityInspector _inspector;
 
         /// <summary>
@@ -35,7 +55,12 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// <summary>
         /// The is refreshing
         /// </summary>
-        [NonSerialized] private bool _isRefreshing;
+        [NonSerialized] private RefreshState _refreshState;
+
+        /// <summary>
+        /// The root items
+        /// </summary>
+        [NonSerialized] private List<TreeViewItemData<Item>> _rootItems;
 
         /// <summary>
         /// The search text
@@ -52,13 +77,16 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// </summary>
         private ToolbarSearchField _searchField;
 
+        /// <summary>
+        /// The cancellation token source
+        /// </summary>
+        private CancellationTokenSource _cancellationTokenSource;
 
         /// <summary>
         /// Creates the gui
         /// </summary>
         private void CreateGUI()
         {
-            hideFlags = HideFlags.DontSave;
             _treeView = new TreeView
             {
                 viewDataKey = "tree-view",
@@ -89,9 +117,37 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             rootVisualElement.Add(toolbar);
             rootVisualElement.Add(_treeView);
 
+            foreach (var pair in EntityVisualizer.EntityStores)
+            {
+                OnStoreRegistered(pair.Key, pair.Value);
+            }
+
+            EntityVisualizer.OnRegistered += OnStoreRegistered;
             _inspector = CreateInstance<EntityInspector>();
+            _refreshState = RefreshState.Idle;
         }
 
+        /// <summary>
+        /// Ons the store registered using the specified name
+        /// </summary>
+        /// <param name="name">The name</param>
+        /// <param name="store">The store</param>
+        private void OnStoreRegistered(string name, EntityStore store)
+        {
+            var status = DropdownMenuAction.Status.Normal;
+            if (_collector == null)
+            {
+                _collector = new EntityCollector();
+                _collector.Bind(store);
+                status = DropdownMenuAction.Status.Checked;
+            }
+
+            _toolbarMenu.menu.AppendAction(name, _ => { OnSwitchEntityStore(store); }, status: status);
+        }
+
+        /// <summary>
+        /// Ons the double click
+        /// </summary>
         private void OnDoubleClick()
         {
             var inspectorWindowType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.InspectorWindow");
@@ -106,6 +162,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         private void OnSearchTextChanged(string text)
         {
             _searchText = text;
+            _collector.IsDirty = true;
         }
 
         /// <summary>
@@ -122,9 +179,13 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             }
         }
 
+        /// <summary>
+        /// Ons the entity selected using the specified id
+        /// </summary>
+        /// <param name="id">The id</param>
         private void OnEntitySelected(int id)
         {
-            _inspector?.Bind(_collector, id);
+            _inspector.Bind(_collector, id);
         }
 
         /// <summary>
@@ -132,28 +193,31 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// </summary>
         private void Update()
         {
-            if (EntityVisualizer.EntityStores.Count == 0) return;
-            if (_collector == null)
+            if (EntityVisualizer.EntityStores.Count == 0 || _refreshState == RefreshState.Refreshing) return;
+            if (_refreshState == RefreshState.Complete)
             {
-                _collector = new EntityCollector();
-                _toolbarMenu.menu.ClearItems();
-                var status = DropdownMenuAction.Status.Checked;
-                foreach (var pair in EntityVisualizer.EntityStores)
-                {
-                    _toolbarMenu.menu.AppendAction(pair.Key, _ => { OnSwitchEntityStore(pair.Value); }, status: status);
-                    if (status != DropdownMenuAction.Status.Checked) continue;
-                    OnSwitchEntityStore(pair.Value);
-                    status = DropdownMenuAction.Status.Normal;
-                }
+                _treeView.SetRootItems(_rootItems);
+                _treeView.RefreshItems();
+                _refreshState = RefreshState.Idle;
+                return;
             }
 
-            if (_inspector == null || _isRefreshing) return;
-            _treeView.SetRootItems(_rootItems);
-            _treeView.RefreshItems();
-            _isRefreshing = true;
-            Task.Run(Refresh);
+            if (_collector.IsDirty)
+            {
+                _collector.IsDirty = false;
+                _refreshState = RefreshState.Refreshing;
+                _cancellationTokenSource?.Cancel();
+                _cancellationTokenSource =
+                    CancellationTokenSource.CreateLinkedTokenSource(Application.exitCancellationToken);
+                var token = _cancellationTokenSource.Token;
+                Task.Run(() => Refresh(token), token);
+            }
         }
 
+        /// <summary>
+        /// Ons the switch entity store using the specified entity store
+        /// </summary>
+        /// <param name="entityStore">The entity store</param>
         private void OnSwitchEntityStore(EntityStore entityStore)
         {
             _collector.Bind(entityStore);
@@ -162,45 +226,53 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// <summary>
         /// Refreshes this instance
         /// </summary>
-        private void Refresh()
+        private void Refresh(CancellationToken token)
         {
             try
             {
-                var token = Application.exitCancellationToken;
-                _rootItems.Clear();
+                var rootItems = new List<TreeViewItemData<Item>>();
                 var entities = _collector.CollectEntities();
+                token.ThrowIfCancellationRequested();
                 foreach (var entity in entities.Values)
                 {
                     token.ThrowIfCancellationRequested();
                     var item = new TreeViewItemData<Item>();
-                    if (CreateTreeViewItemData(entity, ref item))
+                    if (CreateTreeViewItemData(entity, token, ref item))
                     {
-                        _rootItems.Add(item);
+                        rootItems.Add(item);
                     }
                 }
+
+                _rootItems = rootItems;
+                _refreshState = RefreshState.Complete;
             }
             catch (OperationCanceledException)
             {
             }
             catch (Exception ex)
             {
+                _refreshState = RefreshState.Idle;
                 Debug.LogException(ex);
-            }
-            finally
-            {
-                _isRefreshing = false;
             }
         }
 
-        private bool CreateTreeViewItemData(Entity entity, ref TreeViewItemData<Item> itemData)
+        /// <summary>
+        /// Describes whether this instance create tree view item data
+        /// </summary>
+        /// <param name="entity">The entity</param>
+        /// <param name="token">The token</param>
+        /// <param name="itemData">The item data</param>
+        /// <returns>The bool</returns>
+        private bool CreateTreeViewItemData(Entity entity, CancellationToken token, ref TreeViewItemData<Item> itemData)
         {
             List<TreeViewItemData<Item>> children = null;
-            if (entity.ChildCount > 0)
+            if (entity is { IsNull: false, ChildCount: > 0 })
             {
                 foreach (var childEntity in entity.ChildEntities)
                 {
+                    token.ThrowIfCancellationRequested();
                     var child = new TreeViewItemData<Item>();
-                    if (CreateTreeViewItemData(childEntity, ref child))
+                    if (CreateTreeViewItemData(childEntity, token, ref child))
                     {
                         children ??= new List<TreeViewItemData<Item>>();
                         children.Add(child);
@@ -208,6 +280,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
                 }
             }
 
+            token.ThrowIfCancellationRequested();
             var entityName = $"{entity}";
             if (!string.IsNullOrEmpty(_searchText) && !entityName.Contains(_searchText) && children == null)
             {

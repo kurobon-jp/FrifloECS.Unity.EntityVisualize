@@ -12,11 +12,70 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
     {
         private EntityStore _entityStore;
 
-        private readonly SortedDictionary<int, Entity> _entities = new();
+        public bool IsDirty { get; set; } = true;
 
         public void Bind(EntityStore entityStore)
         {
+            if (_entityStore != null)
+            {
+                _entityStore.OnEntitiesChanged -= OnEntitiesChanged;
+                _entityStore.OnEntityCreate -= OnEntityCreate;
+                _entityStore.OnEntityDelete -= OnEntityDelete;
+                _entityStore.OnChildEntitiesChanged -= OnChildEntitiesChanged;
+                _entityStore.OnComponentAdded -= OnComponentAdded;
+                _entityStore.OnComponentRemoved -= OnComponentRemoved;
+                _entityStore.OnScriptAdded -= OnScriptAdded;
+                _entityStore.OnScriptRemoved -= OnScriptRemoved;
+            }
+
             _entityStore = entityStore;
+            if (_entityStore == null) return;
+            _entityStore.OnEntitiesChanged += OnEntitiesChanged;
+            _entityStore.OnEntityCreate += OnEntityCreate;
+            _entityStore.OnEntityDelete += OnEntityDelete;
+            _entityStore.OnChildEntitiesChanged += OnChildEntitiesChanged;
+            _entityStore.OnScriptAdded += OnScriptAdded;
+            _entityStore.OnScriptRemoved += OnScriptRemoved;
+        }
+
+        private void OnComponentRemoved(ComponentChanged obj)
+        {
+            IsDirty = true;
+        }
+
+        private void OnComponentAdded(ComponentChanged obj)
+        {
+            IsDirty = true;
+        }
+
+        private void OnScriptRemoved(ScriptChanged obj)
+        {
+            IsDirty = true;
+        }
+
+        private void OnScriptAdded(ScriptChanged obj)
+        {
+            IsDirty = true;
+        }
+
+        private void OnChildEntitiesChanged(ChildEntitiesChanged obj)
+        {
+            IsDirty = true;
+        }
+
+        private void OnEntityDelete(EntityDelete obj)
+        {
+            IsDirty = true;
+        }
+
+        private void OnEntityCreate(EntityCreate obj)
+        {
+            IsDirty = true;
+        }
+
+        private void OnEntitiesChanged(object sender, EntitiesChanged e)
+        {
+            IsDirty = true;
         }
 
         /// <summary>
@@ -24,14 +83,14 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// </summary>
         public SortedDictionary<int, Entity> CollectEntities()
         {
-            _entities.Clear();
+            var entities = new SortedDictionary<int, Entity>();
             foreach (var entity in _entityStore.Entities)
             {
                 if (entity.IsNull || !entity.Parent.IsNull) continue;
-                _entities[entity.Id] = entity;
+                entities[entity.Id] = entity;
             }
 
-            return _entities;
+            return entities;
         }
 
         public EntityInfo GetEntityInfo(int id)
@@ -43,7 +102,6 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             {
                 entityInfo.Add(new ComponentInfo(component));
             }
-
 
             return entityInfo;
         }

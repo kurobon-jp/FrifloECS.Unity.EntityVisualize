@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 
@@ -9,16 +10,26 @@ namespace FrifloECS.Unity.EntityVisualize
     /// </summary>
     public static class EntityVisualizer
     {
-        public static Dictionary<string, EntityStore> EntityStores { get; } = new();
+        internal static Dictionary<string, EntityStore> EntityStores { get; } = new();
 
+        internal static event Action<string, EntityStore> OnRegistered;
+        
+        internal static event Action<string> OnUnRegistered;
+        
         public static void Register(string name, EntityStore entityStore)
         {
-            EntityStores[name] = entityStore;
+            if (EntityStores.TryAdd(name, entityStore))
+            {
+                OnRegistered?.Invoke(name, entityStore);
+            }
         }
 
         public static void UnRegister(string name)
         {
-            EntityStores.Remove(name);
+            if (EntityStores.Remove(name))
+            {
+                OnUnRegistered?.Invoke(name);
+            }
         }
     }
 }
