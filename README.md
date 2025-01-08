@@ -15,7 +15,7 @@ This library displays a list of structure [Friflo.Engine.ECS](https://github.com
 
 ### Register EntityStore
 ```csharp
-public class Main : MonoMonoBehaviourBehavior
+public class Main : MonoBehaviour
 {
     private void Start()
     {
