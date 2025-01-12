@@ -70,7 +70,16 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
                 for (var i = 0; i < _entityInfo.Components.Count; i++)
                 {
                     var componentInfo = _entityInfo.Components[i];
-                    var component = componentInfo.Component;
+                    object component;
+                    try
+                    {
+                        component = componentInfo.Component;
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+
                     GUI.backgroundColor = GetRainbowColor(i);
                     componentInfo.Foldout =
                         EditorGUILayout.BeginFoldoutHeaderGroup(componentInfo.Foldout, componentInfo.ComponentName);
