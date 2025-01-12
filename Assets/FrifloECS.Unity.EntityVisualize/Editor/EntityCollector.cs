@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using FrifloECS.Unity.EntityVisualize.Editor.Models;
@@ -34,6 +33,8 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             _entityStore.OnEntityCreate += OnEntityCreate;
             _entityStore.OnEntityDelete += OnEntityDelete;
             _entityStore.OnChildEntitiesChanged += OnChildEntitiesChanged;
+            _entityStore.OnComponentAdded += OnComponentAdded;
+            _entityStore.OnComponentRemoved += OnComponentRemoved;
             _entityStore.OnScriptAdded += OnScriptAdded;
             _entityStore.OnScriptRemoved += OnScriptRemoved;
         }

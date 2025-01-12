@@ -82,6 +82,16 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// </summary>
         private CancellationTokenSource _cancellationTokenSource;
 
+        private void Reset()
+        {
+            EntityVisualizer.EntityStores.Clear();
+            EntityVisualizer.OnRegistered -= OnStoreRegistered;
+            EntityVisualizer.OnRegistered += OnStoreRegistered;
+            _collector = null;
+            _inspector = CreateInstance<EntityInspector>();
+            _refreshState = RefreshState.Idle;
+        }
+
         /// <summary>
         /// Creates the gui
         /// </summary>
@@ -116,15 +126,6 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             toolbar.Add(_searchField);
             rootVisualElement.Add(toolbar);
             rootVisualElement.Add(_treeView);
-
-            foreach (var pair in EntityVisualizer.EntityStores)
-            {
-                OnStoreRegistered(pair.Key, pair.Value);
-            }
-
-            EntityVisualizer.OnRegistered += OnStoreRegistered;
-            _inspector = CreateInstance<EntityInspector>();
-            _refreshState = RefreshState.Idle;
         }
 
         /// <summary>
@@ -193,7 +194,8 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// </summary>
         private void Update()
         {
-            if (EntityVisualizer.EntityStores.Count == 0 || _refreshState == RefreshState.Refreshing) return;
+            if (EntityVisualizer.EntityStores.Count == 0 ||
+                _refreshState == RefreshState.Refreshing && !Application.isPlaying) return;
             if (_refreshState == RefreshState.Complete)
             {
                 _treeView.SetRootItems(_rootItems);
@@ -296,10 +298,12 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// Shows the window
         /// </summary>
         [MenuItem("Window/Friflo.ECS/Entities Hierarchy")]
+        [InitializeOnEnterPlayMode]
         public static void ShowWindow()
         {
-            GetWindow<EntitiesHierarchyWindow>("Entities Hierarchy");
+            GetWindow<EntitiesHierarchyWindow>("Entities Hierarchy").Reset();
         }
+
 
         /// <summary>
         /// The item
