@@ -9,7 +9,7 @@ This library displays a list of structure [Friflo.Engine.ECS](https://github.com
 - [Friflo.Engine.ECS](https://www.nuget.org/packages/Friflo.Engine.ECS/)
 
 ## Git Path (Unity Package Manager)
-> https://github.com/kurobon-jp/FrifloECS.Unity.EntityVisualize.git?path=Assets/
+> https://github.com/kurobon-jp/FrifloECS.Unity.EntityVisualize.git?path=Assets/FrifloECS.Unity.EntityVisualize/
 
 ## Usage 
 
