@@ -82,14 +82,28 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// </summary>
         private CancellationTokenSource _cancellationTokenSource;
 
-        private void Reset()
+        private void Initialize(bool isClearStores)
         {
-            EntityVisualizer.EntityStores.Clear();
-            EntityVisualizer.OnRegistered -= OnStoreRegistered;
-            EntityVisualizer.OnRegistered += OnStoreRegistered;
             _collector = null;
             _inspector = CreateInstance<EntityInspector>();
             _refreshState = RefreshState.Idle;
+            _toolbarMenu.menu.MenuItems().Clear();
+            if (isClearStores)
+            {
+                EntityVisualizer.EntityStores.Clear();
+            }
+
+            foreach (var pair in EntityVisualizer.EntityStores)
+            {
+                OnStoreRegistered(pair.Key, pair.Value);
+            }
+
+            EntityVisualizer.OnRegistered += OnStoreRegistered;
+        }
+
+        private void OnDestroy()
+        {
+            EntityVisualizer.OnRegistered -= OnStoreRegistered;
         }
 
         /// <summary>
@@ -298,12 +312,19 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// Shows the window
         /// </summary>
         [MenuItem("Window/Friflo.ECS/Entities Hierarchy")]
-        [InitializeOnEnterPlayMode]
         public static void ShowWindow()
         {
-            GetWindow<EntitiesHierarchyWindow>("Entities Hierarchy").Reset();
+            GetWindow<EntitiesHierarchyWindow>("Entities Hierarchy").Initialize(false);
         }
 
+        [InitializeOnEnterPlayMode]
+        public static void OnEnterPlayMode()
+        {
+            if (HasOpenInstances<EntitiesHierarchyWindow>())
+            {
+                GetWindow<EntitiesHierarchyWindow>().Initialize(true);
+            }
+        }
 
         /// <summary>
         /// The item
