@@ -76,7 +76,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// The cancellation token source
         /// </summary>
         private CancellationTokenSource _cancellationTokenSource;
-        
+
         private bool _isPlaying;
 
         /// <summary>
@@ -130,10 +130,10 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// <param name="store">The store</param>
         private void OnStoreRegistered(string name, EntityStore store)
         {
-            var status =DropdownMenuAction.Status.Normal ;
+            var status = DropdownMenuAction.Status.Normal;
             if (_toolbarMenu.menu.MenuItems().Count == 0)
             {
-                status =DropdownMenuAction.Status.Checked ;
+                status = DropdownMenuAction.Status.Checked;
                 _collector.Bind(store);
             }
 
@@ -193,10 +193,14 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
                 _isPlaying = Application.isPlaying;
                 if (_isPlaying)
                 {
-                    ClearMenuItems();
+                    OnPlayEditor();
+                }
+                else
+                {
+                    OnStopEditor();
                 }
             }
-            
+
             if (EntityVisualizer.EntityStores.Count == 0 ||
                 _refreshState == RefreshState.Refreshing && !_isPlaying) return;
             if (_refreshState == RefreshState.Complete)
@@ -219,7 +223,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             }
         }
 
-        private void ClearMenuItems()
+        private void OnPlayEditor()
         {
             _toolbarMenu.menu.ClearItems();
             foreach (var pair in EntityVisualizer.EntityStores)
@@ -229,7 +233,13 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
 
             EntityVisualizer.OnRegistered += OnStoreRegistered;
         }
-        
+
+        private void OnStopEditor()
+        {
+            EntityVisualizer.OnRegistered -= OnStoreRegistered;
+            _cancellationTokenSource?.Cancel();
+        }
+
         /// <summary>
         /// Ons the switch entity store using the specified entity store
         /// </summary>
