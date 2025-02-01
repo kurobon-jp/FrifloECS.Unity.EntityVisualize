@@ -28,6 +28,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             }
 
             _entityStore = entityStore;
+            IsDirty = true;
             if (_entityStore == null) return;
             _entityStore.OnEntitiesChanged += OnEntitiesChanged;
             _entityStore.OnEntityCreate += OnEntityCreate;
@@ -85,10 +86,13 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         public SortedDictionary<int, Entity> CollectEntities()
         {
             var entities = new SortedDictionary<int, Entity>();
-            foreach (var entity in _entityStore.Entities)
+            if (_entityStore != null)
             {
-                if (entity.IsNull || !entity.Parent.IsNull) continue;
-                entities[entity.Id] = entity;
+                foreach (var entity in _entityStore.Entities)
+                {
+                    if (entity.IsNull || !entity.Parent.IsNull) continue;
+                    entities[entity.Id] = entity;
+                }
             }
 
             return entities;
