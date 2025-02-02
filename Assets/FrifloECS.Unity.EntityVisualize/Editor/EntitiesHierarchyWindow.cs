@@ -84,11 +84,19 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         private readonly EntityCollector _collector = new();
 
         /// <summary>
+        /// Ons the enable
+        /// </summary>
+        void OnEnable()
+        {
+            EntityVisualizer.OnRegistered += OnStoreRegistered;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        }
+
+        /// <summary>
         /// Creates the gui
         /// </summary>
         private void CreateGUI()
         {
-            Debug.LogWarning("CreateGUI");
             _treeView = new TreeView
             {
                 viewDataKey = "tree-view",
@@ -119,14 +127,11 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             rootVisualElement.Add(toolbar);
             rootVisualElement.Add(_treeView);
             _refreshState = RefreshState.Idle;
-            _toolbarMenu.menu.ClearItems();
-            foreach (var pair in EntityVisualizer.EntityStores)
-            {
-                OnStoreRegistered(pair.Key, pair.Value);
-            }
 
-            EntityVisualizer.OnRegistered += OnStoreRegistered;
-            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            if (Application.isPlaying)
+            {
+                OnPlayEditor();
+            }
         }
 
         /// <summary>
@@ -135,9 +140,27 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// <param name="state">The state</param>
         private void OnPlayModeStateChanged(PlayModeStateChange state)
         {
-            if (state == PlayModeStateChange.ExitingPlayMode)
+            switch (state)
             {
-                OnStopEditor();
+                case PlayModeStateChange.EnteredPlayMode:
+                    EditorApplication.delayCall += OnPlayEditor;
+                    break;
+                case PlayModeStateChange.ExitingPlayMode:
+                    OnStopEditor();
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Ons the play editor
+        /// </summary>
+        private void OnPlayEditor()
+        {
+            if (_toolbarMenu == null) return;
+            _toolbarMenu.menu.ClearItems();
+            foreach (var pair in EntityVisualizer.EntityStores)
+            {
+                OnStoreRegistered(pair.Key, pair.Value);
             }
         }
 
@@ -148,6 +171,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// <param name="store">The store</param>
         private void OnStoreRegistered(string name, EntityStore store)
         {
+            if (_toolbarMenu == null) return;
             var status = DropdownMenuAction.Status.Normal;
             if (_toolbarMenu.menu.MenuItems().Count == 0)
             {
@@ -199,7 +223,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         private void OnEntitySelected(int id)
         {
             _selectedId = id;
-            Selection.activeObject = id == 0 ? null : this;
+            Selection.activeObject = id == 0 || !EditorApplication.isPlaying ? null : this;
             EditorUtility.SetDirty(this);
         }
 
@@ -208,8 +232,8 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// </summary>
         private void Update()
         {
-            if (EntityVisualizer.EntityStores.Count == 0 ||
-                _refreshState == RefreshState.Refreshing && !EditorApplication.isPlaying) return;
+            if (EntityVisualizer.EntityStores.Count == 0 || !EditorApplication.isPlaying ||
+                _refreshState == RefreshState.Refreshing) return;
             if (_refreshState == RefreshState.Complete)
             {
                 _treeView.SetRootItems(_rootItems);
@@ -370,6 +394,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             /// The window
             /// </summary>
             private EntitiesHierarchyWindow _window;
+
             /// <summary>
             /// The entity info
             /// </summary>
