@@ -248,14 +248,12 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         {
             EntityVisualizer.Clear();
             _cancellationTokenSource?.Cancel();
+            _isPlaying = false;
         }
 
-        /// <summary>
-        /// Ons the focus
-        /// </summary>
-        private void OnFocus()
+        private void OnLostFocus()
         {
-            _isPlaying = false;
+            OnStopEditor();
         }
 
         /// <summary>
