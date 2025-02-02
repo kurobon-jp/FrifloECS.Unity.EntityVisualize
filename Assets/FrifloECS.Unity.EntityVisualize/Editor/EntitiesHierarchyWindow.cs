@@ -236,7 +236,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
 
         private void OnStopEditor()
         {
-            EntityVisualizer.OnRegistered -= OnStoreRegistered;
+            EntityVisualizer.Clear();
             _cancellationTokenSource?.Cancel();
         }
 
