@@ -251,6 +251,14 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         }
 
         /// <summary>
+        /// Ons the focus
+        /// </summary>
+        private void OnFocus()
+        {
+            _isPlaying = false;
+        }
+
+        /// <summary>
         /// Ons the destroy
         /// </summary>
         private void OnDestroy()
