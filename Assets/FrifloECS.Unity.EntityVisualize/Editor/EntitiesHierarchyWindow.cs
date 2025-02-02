@@ -77,6 +77,9 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// </summary>
         private CancellationTokenSource _cancellationTokenSource;
 
+        /// <summary>
+        /// The is playing
+        /// </summary>
         private bool _isPlaying;
 
         /// <summary>
@@ -188,10 +191,11 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// </summary>
         private void Update()
         {
-            if (_isPlaying != Application.isPlaying)
+            var isPlaying = EditorApplication.isPlaying;
+            if (_isPlaying != isPlaying)
             {
-                _isPlaying = Application.isPlaying;
-                if (_isPlaying)
+                _isPlaying = isPlaying;
+                if (isPlaying)
                 {
                     OnPlayEditor();
                 }
@@ -202,7 +206,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             }
 
             if (EntityVisualizer.EntityStores.Count == 0 ||
-                _refreshState == RefreshState.Refreshing && !_isPlaying) return;
+                _refreshState == RefreshState.Refreshing && !isPlaying) return;
             if (_refreshState == RefreshState.Complete)
             {
                 _treeView.SetRootItems(_rootItems);
@@ -223,6 +227,9 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             }
         }
 
+        /// <summary>
+        /// Ons the play editor
+        /// </summary>
         private void OnPlayEditor()
         {
             _toolbarMenu.menu.ClearItems();
@@ -234,10 +241,21 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             EntityVisualizer.OnRegistered += OnStoreRegistered;
         }
 
+        /// <summary>
+        /// Ons the stop editor
+        /// </summary>
         private void OnStopEditor()
         {
             EntityVisualizer.Clear();
             _cancellationTokenSource?.Cancel();
+        }
+
+        /// <summary>
+        /// Ons the destroy
+        /// </summary>
+        private void OnDestroy()
+        {
+            OnStopEditor();
         }
 
         /// <summary>
