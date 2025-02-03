@@ -43,11 +43,6 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         [NonSerialized] private EntityInspector _inspector;
 
         /// <summary>
-        /// The collector
-        /// </summary>
-        [NonSerialized] private EntityCollector _collector;
-
-        /// <summary>
         /// The tree view
         /// </summary>
         [NonSerialized] private TreeView _treeView;
@@ -81,30 +76,13 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// The cancellation token source
         /// </summary>
         private CancellationTokenSource _cancellationTokenSource;
+        
+        private bool _isPlaying;
 
-        private void Initialize(bool isClearStores)
-        {
-            _collector = null;
-            _inspector = CreateInstance<EntityInspector>();
-            _refreshState = RefreshState.Idle;
-            _toolbarMenu.menu.MenuItems().Clear();
-            if (isClearStores)
-            {
-                EntityVisualizer.EntityStores.Clear();
-            }
-
-            foreach (var pair in EntityVisualizer.EntityStores)
-            {
-                OnStoreRegistered(pair.Key, pair.Value);
-            }
-
-            EntityVisualizer.OnRegistered += OnStoreRegistered;
-        }
-
-        private void OnDestroy()
-        {
-            EntityVisualizer.OnRegistered -= OnStoreRegistered;
-        }
+        /// <summary>
+        /// The collector
+        /// </summary>
+        private readonly EntityCollector _collector = new();
 
         /// <summary>
         /// Creates the gui
@@ -140,6 +118,9 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             toolbar.Add(_searchField);
             rootVisualElement.Add(toolbar);
             rootVisualElement.Add(_treeView);
+
+            _inspector = CreateInstance<EntityInspector>();
+            _refreshState = RefreshState.Idle;
         }
 
         /// <summary>
@@ -149,12 +130,11 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// <param name="store">The store</param>
         private void OnStoreRegistered(string name, EntityStore store)
         {
-            var status = DropdownMenuAction.Status.Normal;
-            if (_collector == null)
+            var status =DropdownMenuAction.Status.Normal ;
+            if (_toolbarMenu.menu.MenuItems().Count == 0)
             {
-                _collector = new EntityCollector();
+                status =DropdownMenuAction.Status.Checked ;
                 _collector.Bind(store);
-                status = DropdownMenuAction.Status.Checked;
             }
 
             _toolbarMenu.menu.AppendAction(name, _ => { OnSwitchEntityStore(store); }, status: status);
@@ -208,8 +188,17 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// </summary>
         private void Update()
         {
+            if (_isPlaying != Application.isPlaying)
+            {
+                _isPlaying = Application.isPlaying;
+                if (_isPlaying)
+                {
+                    ClearMenuItems();
+                }
+            }
+            
             if (EntityVisualizer.EntityStores.Count == 0 ||
-                _refreshState == RefreshState.Refreshing && !Application.isPlaying) return;
+                _refreshState == RefreshState.Refreshing && !_isPlaying) return;
             if (_refreshState == RefreshState.Complete)
             {
                 _treeView.SetRootItems(_rootItems);
@@ -230,6 +219,17 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             }
         }
 
+        private void ClearMenuItems()
+        {
+            _toolbarMenu.menu.ClearItems();
+            foreach (var pair in EntityVisualizer.EntityStores)
+            {
+                OnStoreRegistered(pair.Key, pair.Value);
+            }
+
+            EntityVisualizer.OnRegistered += OnStoreRegistered;
+        }
+        
         /// <summary>
         /// Ons the switch entity store using the specified entity store
         /// </summary>
@@ -314,16 +314,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         [MenuItem("Window/Friflo.ECS/Entities Hierarchy")]
         public static void ShowWindow()
         {
-            GetWindow<EntitiesHierarchyWindow>("Entities Hierarchy").Initialize(false);
-        }
-
-        [InitializeOnEnterPlayMode]
-        public static void OnEnterPlayMode()
-        {
-            if (HasOpenInstances<EntitiesHierarchyWindow>())
-            {
-                GetWindow<EntitiesHierarchyWindow>().Initialize(true);
-            }
+            GetWindow<EntitiesHierarchyWindow>("Entities Hierarchy");
         }
 
         /// <summary>

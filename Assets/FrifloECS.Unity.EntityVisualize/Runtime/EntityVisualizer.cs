@@ -13,23 +13,17 @@ namespace FrifloECS.Unity.EntityVisualize
         internal static Dictionary<string, EntityStore> EntityStores { get; } = new();
 
         internal static event Action<string, EntityStore> OnRegistered;
-        
-        internal static event Action<string> OnUnRegistered;
-        
+
         public static void Register(string name, EntityStore entityStore)
         {
-            if (EntityStores.TryAdd(name, entityStore))
-            {
-                OnRegistered?.Invoke(name, entityStore);
-            }
+            EntityStores[name] = entityStore;
+            OnRegistered?.Invoke(name, entityStore);
         }
 
-        public static void UnRegister(string name)
+        public static void Clear()
         {
-            if (EntityStores.Remove(name))
-            {
-                OnUnRegistered?.Invoke(name);
-            }
+            EntityStores.Clear();
+            OnRegistered = null;
         }
     }
 }
