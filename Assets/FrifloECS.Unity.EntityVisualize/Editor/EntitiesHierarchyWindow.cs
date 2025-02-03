@@ -128,7 +128,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             rootVisualElement.Add(_treeView);
             _refreshState = RefreshState.Idle;
 
-            if (Application.isPlaying)
+            if (EditorApplication.isPlaying)
             {
                 OnPlayEditor();
             }
@@ -147,6 +147,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
                     break;
                 case PlayModeStateChange.ExitingPlayMode:
                     OnStopEditor();
+                    EntityVisualizer.Clear();
                     break;
             }
         }
@@ -261,7 +262,6 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         {
             _cancellationTokenSource?.Cancel();
             Selection.activeObject = null;
-            EntityVisualizer.Clear();
         }
 
         /// <summary>
@@ -408,6 +408,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             {
                 _window = (EntitiesHierarchyWindow)target;
                 _entityInfo = _window.GetEntityInfo();
+                if (_entityInfo == null) return;
                 var style = new GUIStyle(EditorStyles.boldLabel);
                 style.fontSize = 24;
                 style.padding = new RectOffset(8, 8, 8, 8);
@@ -419,6 +420,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             /// </summary>
             public override void OnInspectorGUI()
             {
+                if (_entityInfo == null) return;
                 var defaultColor = GUI.backgroundColor;
                 for (var i = 0; i < _entityInfo.Components.Count; i++)
                 {
