@@ -261,6 +261,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         {
             _cancellationTokenSource?.Cancel();
             Selection.activeObject = null;
+            EntityVisualizer.Clear();
         }
 
         /// <summary>
@@ -418,7 +419,6 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             /// </summary>
             public override void OnInspectorGUI()
             {
-                if (_entityInfo == null) return;
                 var defaultColor = GUI.backgroundColor;
                 for (var i = 0; i < _entityInfo.Components.Count; i++)
                 {
