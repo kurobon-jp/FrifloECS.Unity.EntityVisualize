@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Friflo.Engine.ECS;
+using FrifloECS.Unity.EntityVisualize.Editor.Models;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -38,11 +39,6 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         }
 
         /// <summary>
-        /// The inspector
-        /// </summary>
-        [NonSerialized] private EntityInspector _inspector;
-
-        /// <summary>
         /// The tree view
         /// </summary>
         [NonSerialized] private TreeView _treeView;
@@ -76,13 +72,25 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// The cancellation token source
         /// </summary>
         private CancellationTokenSource _cancellationTokenSource;
-        
-        private bool _isPlaying;
+
+        /// <summary>
+        /// The selected id
+        /// </summary>
+        private int _selectedId;
 
         /// <summary>
         /// The collector
         /// </summary>
         private readonly EntityCollector _collector = new();
+
+        /// <summary>
+        /// Ons the enable
+        /// </summary>
+        void OnEnable()
+        {
+            EntityVisualizer.OnRegistered += OnStoreRegistered;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        }
 
         /// <summary>
         /// Creates the gui
@@ -118,9 +126,42 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             toolbar.Add(_searchField);
             rootVisualElement.Add(toolbar);
             rootVisualElement.Add(_treeView);
-
-            _inspector = CreateInstance<EntityInspector>();
             _refreshState = RefreshState.Idle;
+
+            if (Application.isPlaying)
+            {
+                OnPlayEditor();
+            }
+        }
+
+        /// <summary>
+        /// Ons the play mode state changed using the specified state
+        /// </summary>
+        /// <param name="state">The state</param>
+        private void OnPlayModeStateChanged(PlayModeStateChange state)
+        {
+            switch (state)
+            {
+                case PlayModeStateChange.EnteredPlayMode:
+                    EditorApplication.delayCall += OnPlayEditor;
+                    break;
+                case PlayModeStateChange.ExitingPlayMode:
+                    OnStopEditor();
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Ons the play editor
+        /// </summary>
+        private void OnPlayEditor()
+        {
+            if (_toolbarMenu == null) return;
+            _toolbarMenu.menu.ClearItems();
+            foreach (var pair in EntityVisualizer.EntityStores)
+            {
+                OnStoreRegistered(pair.Key, pair.Value);
+            }
         }
 
         /// <summary>
@@ -130,10 +171,11 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// <param name="store">The store</param>
         private void OnStoreRegistered(string name, EntityStore store)
         {
-            var status =DropdownMenuAction.Status.Normal ;
+            if (_toolbarMenu == null) return;
+            var status = DropdownMenuAction.Status.Normal;
             if (_toolbarMenu.menu.MenuItems().Count == 0)
             {
-                status =DropdownMenuAction.Status.Checked ;
+                status = DropdownMenuAction.Status.Checked;
                 _collector.Bind(store);
             }
 
@@ -180,7 +222,9 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// <param name="id">The id</param>
         private void OnEntitySelected(int id)
         {
-            _inspector.Bind(_collector, id);
+            _selectedId = id;
+            Selection.activeObject = id == 0 || !EditorApplication.isPlaying ? null : this;
+            EditorUtility.SetDirty(this);
         }
 
         /// <summary>
@@ -188,17 +232,8 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// </summary>
         private void Update()
         {
-            if (_isPlaying != Application.isPlaying)
-            {
-                _isPlaying = Application.isPlaying;
-                if (_isPlaying)
-                {
-                    ClearMenuItems();
-                }
-            }
-            
-            if (EntityVisualizer.EntityStores.Count == 0 ||
-                _refreshState == RefreshState.Refreshing && !_isPlaying) return;
+            if (EntityVisualizer.EntityStores.Count == 0 || !EditorApplication.isPlaying ||
+                _refreshState == RefreshState.Refreshing) return;
             if (_refreshState == RefreshState.Complete)
             {
                 _treeView.SetRootItems(_rootItems);
@@ -219,17 +254,24 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             }
         }
 
-        private void ClearMenuItems()
+        /// <summary>
+        /// Ons the stop editor
+        /// </summary>
+        private void OnStopEditor()
         {
-            _toolbarMenu.menu.ClearItems();
-            foreach (var pair in EntityVisualizer.EntityStores)
-            {
-                OnStoreRegistered(pair.Key, pair.Value);
-            }
-
-            EntityVisualizer.OnRegistered += OnStoreRegistered;
+            _cancellationTokenSource?.Cancel();
+            Selection.activeObject = null;
+            EntityVisualizer.Clear();
         }
-        
+
+        /// <summary>
+        /// Ons the destroy
+        /// </summary>
+        private void OnDestroy()
+        {
+            OnStopEditor();
+        }
+
         /// <summary>
         /// Ons the switch entity store using the specified entity store
         /// </summary>
@@ -318,6 +360,15 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         }
 
         /// <summary>
+        /// Gets the entity info
+        /// </summary>
+        /// <returns>The entity info</returns>
+        private EntityInfo GetEntityInfo()
+        {
+            return _collector.GetEntityInfo(_selectedId);
+        }
+
+        /// <summary>
         /// The item
         /// </summary>
         private struct Item
@@ -331,6 +382,176 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             /// The id
             /// </summary>
             public int id;
+        }
+
+        /// <summary>
+        /// The entities hierarchy window editor class
+        /// </summary>
+        /// <seealso cref="UnityEditor.Editor"/>
+        [CustomEditor(typeof(EntitiesHierarchyWindow))]
+        public class EntitiesHierarchyWindowEditor : UnityEditor.Editor
+        {
+            /// <summary>
+            /// The window
+            /// </summary>
+            private EntitiesHierarchyWindow _window;
+
+            /// <summary>
+            /// The entity info
+            /// </summary>
+            private EntityInfo _entityInfo;
+
+            /// <summary>
+            /// Ons the header gui
+            /// </summary>
+            protected override void OnHeaderGUI()
+            {
+                _window = (EntitiesHierarchyWindow)target;
+                _entityInfo = _window.GetEntityInfo();
+                var style = new GUIStyle(EditorStyles.boldLabel);
+                style.fontSize = 24;
+                style.padding = new RectOffset(8, 8, 8, 8);
+                GUILayout.Label($"{_entityInfo}", style);
+            }
+
+            /// <summary>
+            /// Ons the inspector gui
+            /// </summary>
+            public override void OnInspectorGUI()
+            {
+                var defaultColor = GUI.backgroundColor;
+                for (var i = 0; i < _entityInfo.Components.Count; i++)
+                {
+                    var componentInfo = _entityInfo.Components[i];
+                    object component;
+                    try
+                    {
+                        component = componentInfo.Component;
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+
+                    GUI.backgroundColor = GetRainbowColor(i);
+                    componentInfo.Foldout =
+                        EditorGUILayout.BeginFoldoutHeaderGroup(componentInfo.Foldout, componentInfo.ComponentName);
+                    GUI.backgroundColor = defaultColor;
+                    if (componentInfo.Foldout)
+                    {
+                        foreach (var field in component.GetType().GetFields())
+                        {
+                            var value = field.GetValue(component);
+                            if (field.FieldType == typeof(string))
+                            {
+                                EditorGUILayout.LabelField(field.Name, (string)value);
+                            }
+                            else if (field.FieldType == typeof(bool))
+                            {
+                                EditorGUILayout.Toggle(field.Name, (bool)value);
+                            }
+                            else if (field.FieldType == typeof(byte))
+                            {
+                                EditorGUILayout.IntField(field.Name, (int)value);
+                            }
+                            else if (field.FieldType == typeof(short))
+                            {
+                                EditorGUILayout.IntField(field.Name, (int)value);
+                            }
+                            else if (field.FieldType == typeof(ushort))
+                            {
+                                EditorGUILayout.IntField(field.Name, Convert.ToInt16((ushort)value));
+                            }
+                            else if (field.FieldType == typeof(int))
+                            {
+                                EditorGUILayout.IntField(field.Name, (int)value);
+                            }
+                            else if (field.FieldType == typeof(uint))
+                            {
+                                EditorGUILayout.IntField(field.Name, Convert.ToInt32((uint)value));
+                            }
+                            else if (field.FieldType == typeof(long))
+                            {
+                                EditorGUILayout.LongField(field.Name, (long)value);
+                            }
+                            else if (field.FieldType == typeof(ulong))
+                            {
+                                EditorGUILayout.LongField(field.Name, Convert.ToInt64((ulong)value));
+                            }
+                            else if (field.FieldType == typeof(float))
+                            {
+                                EditorGUILayout.FloatField(field.Name, (float)value);
+                            }
+                            else if (field.FieldType == typeof(double))
+                            {
+                                EditorGUILayout.DoubleField(field.Name, (double)value);
+                            }
+                            else if (field.FieldType == typeof(Color))
+                            {
+                                EditorGUILayout.ColorField(field.Name, (Color)value);
+                            }
+                            else if (field.FieldType == typeof(Vector2))
+                            {
+                                EditorGUILayout.Vector2Field(field.Name, (Vector2)value);
+                            }
+                            else if (field.FieldType == typeof(Vector2Int))
+                            {
+                                EditorGUILayout.Vector2IntField(field.Name, (Vector2Int)value);
+                            }
+                            else if (field.FieldType == typeof(Vector3))
+                            {
+                                EditorGUILayout.Vector3Field(field.Name, (Vector3)value);
+                            }
+                            else if (field.FieldType == typeof(Vector3Int))
+                            {
+                                EditorGUILayout.Vector3IntField(field.Name, (Vector3Int)value);
+                            }
+                            else if (field.FieldType == typeof(Vector4))
+                            {
+                                EditorGUILayout.Vector4Field(field.Name, (Vector4)value);
+                            }
+                            else if (field.FieldType == typeof(Quaternion))
+                            {
+                                var quaternion = (Quaternion)value;
+                                EditorGUILayout.Vector4Field(field.Name,
+                                    new Vector4(quaternion.x, quaternion.y, quaternion.z, quaternion.w));
+                            }
+                            else if (field.FieldType.IsEnum)
+                            {
+                                EditorGUILayout.EnumPopup(field.Name, (Enum)value);
+                            }
+                            else if (field.FieldType == typeof(Friflo.Engine.ECS.Position))
+                            {
+                                var position = (Friflo.Engine.ECS.Position)value;
+                                EditorGUILayout.Vector4Field(field.Name,
+                                    new Vector3(position.x, position.y, position.z));
+                            }
+                            else if (value is UnityEngine.Object obj)
+                            {
+                                EditorGUILayout.ObjectField(field.Name, obj, field.FieldType, true);
+                            }
+                            else
+                            {
+                                EditorGUILayout.LabelField(field.Name, value?.ToString());
+                            }
+                        }
+                    }
+
+                    EditorGUILayout.EndFoldoutHeaderGroup();
+                }
+
+                EditorUtility.SetDirty(target);
+            }
+
+            /// <summary>
+            /// Gets the rainbow color using the specified index
+            /// </summary>
+            /// <param name="index">The index</param>
+            /// <returns>The color</returns>
+            private static Color GetRainbowColor(int index)
+            {
+                return Color.HSVToRGB(index / 16f % 1f, 1, 1);
+            }
         }
     }
 }
