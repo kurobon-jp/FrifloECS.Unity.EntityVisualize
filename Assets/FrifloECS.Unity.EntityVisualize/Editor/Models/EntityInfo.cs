@@ -1,29 +1,26 @@
 using System.Collections.Generic;
+using Friflo.Engine.ECS;
 
 namespace FrifloECS.Unity.EntityVisualize.Editor.Models
 {
     /// <summary>
     /// The entity info class
     /// </summary>
-    public class EntityInfo
+    public partial class EntityInfo
     {
         /// <summary>
         /// Gets the value of the entity id
         /// </summary>
         public int Id { get; }
 
-        public string Name { get; }
-
-        
         /// <summary>
         /// Gets the value of the components
         /// </summary>
         public List<ComponentInfo> Components { get; } = new();
 
-        public EntityInfo(int id, string name)
+        public EntityInfo(Entity entity)
         {
-            Id = id;
-            Name = name;
+            Id = entity.Id;
         }
 
         /// <summary>

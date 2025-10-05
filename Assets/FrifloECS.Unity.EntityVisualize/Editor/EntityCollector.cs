@@ -83,15 +83,15 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// <summary>
         /// Ticks this instance
         /// </summary>
-        public SortedDictionary<int, Entity> CollectEntities()
+        public List<Entity> CollectEntities()
         {
-            var entities = new SortedDictionary<int, Entity>();
+            var entities = new List<Entity>();
             if (_entityStore != null)
             {
                 foreach (var entity in _entityStore.Entities)
                 {
                     if (entity.IsNull || !entity.Parent.IsNull) continue;
-                    entities[entity.Id] = entity;
+                    entities.Add(entity);
                 }
             }
 
@@ -102,7 +102,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         {
             var entity = _entityStore.GetEntityById(id);
             if (entity.IsNull) return null;
-            var entityInfo = new EntityInfo(id, entity.ToString());
+            var entityInfo = new EntityInfo(entity);
             foreach (var component in entity.Components)
             {
                 entityInfo.Add(new ComponentInfo(component));

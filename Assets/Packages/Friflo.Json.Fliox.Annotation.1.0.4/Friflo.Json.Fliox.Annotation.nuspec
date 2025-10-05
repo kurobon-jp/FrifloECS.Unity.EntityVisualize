@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>Friflo.Json.Fliox.Annotation</id>
+    <version>1.0.4</version>
+    <title>JSON Fliox Annotation</title>
+    <authors>Ullrich Praetz</authors>
+    <license type="expression">LGPL-3.0-only</license>
+    <licenseUrl>https://licenses.nuget.org/LGPL-3.0-only</licenseUrl>
+    <icon>package-icon.png</icon>
+    <readme>README.md</readme>
+    <projectUrl>https://github.com/friflo/Friflo.Json.Fliox</projectUrl>
+    <description>Attributes used to control JSON serialization, Schema generation and Hub behavior of JSON Fliox</description>
+    <copyright>Ullrich Praetz</copyright>
+    <repository type="git" url="https://github.com/friflo/Friflo.Json.Fliox" commit="6ac89217ad3ea66f11abfd756a0af323d63315ff" />
+    <dependencies>
+      <group targetFramework=".NETCoreApp3.1" />
+      <group targetFramework="net8.0" />
+      <group targetFramework=".NETStandard2.0" />
+      <group targetFramework=".NETStandard2.1" />
+    </dependencies>
+  </metadata>
+</package>

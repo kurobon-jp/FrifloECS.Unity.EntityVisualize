@@ -12,7 +12,7 @@ using UnityEngine.UIElements;
 namespace FrifloECS.Unity.EntityVisualize.Editor
 {
     /// <summary>
-    /// The entities hierarchy window class
+    /// The entities hierarchy window
     /// </summary>
     /// <seealso cref="EditorWindow"/>
     internal sealed class EntitiesHierarchyWindow : EditorWindow
@@ -51,7 +51,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// <summary>
         /// The root items
         /// </summary>
-        [NonSerialized] private List<TreeViewItemData<Item>> _rootItems;
+        [NonSerialized] private IList<TreeViewItemData<Item>> _rootItems;
 
         /// <summary>
         /// The search text
@@ -181,7 +181,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             }
 
             _toolbarMenu.menu.AppendAction(name, _ => { OnSwitchEntityStore(store); }, status: status);
-        }
+ }
 
         /// <summary>
         /// Ons the double click
@@ -251,7 +251,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
                 _cancellationTokenSource =
                     CancellationTokenSource.CreateLinkedTokenSource(Application.exitCancellationToken);
                 var token = _cancellationTokenSource.Token;
-                Task.Run(() => Refresh(token), token);
+                Task.Run(() => RefreshAsync(token), token);
             }
         }
 
@@ -284,23 +284,25 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// <summary>
         /// Refreshes this instance
         /// </summary>
-        private void Refresh(CancellationToken token)
+        private void RefreshAsync(CancellationToken token)
         {
             try
             {
-                var rootItems = new List<TreeViewItemData<Item>>();
                 var entities = _collector.CollectEntities();
+                var rootItems = new List<TreeViewItemData<Item>>();
                 token.ThrowIfCancellationRequested();
-                foreach (var entity in entities.Values)
+                Parallel.For(0, entities.Count, i =>
                 {
                     token.ThrowIfCancellationRequested();
                     var item = new TreeViewItemData<Item>();
-                    if (CreateTreeViewItemData(entity, token, ref item))
+                    if (!CreateTreeViewItemData(entities[i], token, ref item)) return;
+                    lock (rootItems)
                     {
                         rootItems.Add(item);
                     }
-                }
+                });
 
+                rootItems.Sort((a, b) => a.id.CompareTo(b.id));
                 _rootItems = rootItems;
                 _refreshState = RefreshState.Complete;
             }
@@ -363,7 +365,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// Gets the entity info
         /// </summary>
         /// <returns>The entity info</returns>
-        private EntityInfo GetEntityInfo()
+        public EntityInfo GetSelectedEntityInfo()
         {
             return _collector.GetEntityInfo(_selectedId);
         }
@@ -382,178 +384,6 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             /// The id
             /// </summary>
             public int id;
-        }
-
-        /// <summary>
-        /// The entities hierarchy window editor class
-        /// </summary>
-        /// <seealso cref="UnityEditor.Editor"/>
-        [CustomEditor(typeof(EntitiesHierarchyWindow))]
-        public class EntitiesHierarchyWindowEditor : UnityEditor.Editor
-        {
-            /// <summary>
-            /// The window
-            /// </summary>
-            private EntitiesHierarchyWindow _window;
-
-            /// <summary>
-            /// The entity info
-            /// </summary>
-            private EntityInfo _entityInfo;
-
-            /// <summary>
-            /// Ons the header gui
-            /// </summary>
-            protected override void OnHeaderGUI()
-            {
-                _window = (EntitiesHierarchyWindow)target;
-                _entityInfo = _window.GetEntityInfo();
-                if (_entityInfo == null) return;
-                var style = new GUIStyle(EditorStyles.boldLabel);
-                style.fontSize = 24;
-                style.padding = new RectOffset(8, 8, 8, 8);
-                GUILayout.Label($"{_entityInfo}", style);
-            }
-
-            /// <summary>
-            /// Ons the inspector gui
-            /// </summary>
-            public override void OnInspectorGUI()
-            {
-                if (_entityInfo == null) return;
-                var defaultColor = GUI.backgroundColor;
-                for (var i = 0; i < _entityInfo.Components.Count; i++)
-                {
-                    var componentInfo = _entityInfo.Components[i];
-                    object component;
-                    try
-                    {
-                        component = componentInfo.Component;
-                    }
-                    catch
-                    {
-                        continue;
-                    }
-
-                    GUI.backgroundColor = GetRainbowColor(i);
-                    componentInfo.Foldout =
-                        EditorGUILayout.BeginFoldoutHeaderGroup(componentInfo.Foldout, componentInfo.ComponentName);
-                    GUI.backgroundColor = defaultColor;
-                    if (componentInfo.Foldout)
-                    {
-                        foreach (var field in component.GetType().GetFields())
-                        {
-                            var value = field.GetValue(component);
-                            if (field.FieldType == typeof(string))
-                            {
-                                EditorGUILayout.LabelField(field.Name, (string)value);
-                            }
-                            else if (field.FieldType == typeof(bool))
-                            {
-                                EditorGUILayout.Toggle(field.Name, (bool)value);
-                            }
-                            else if (field.FieldType == typeof(byte))
-                            {
-                                EditorGUILayout.IntField(field.Name, (int)value);
-                            }
-                            else if (field.FieldType == typeof(short))
-                            {
-                                EditorGUILayout.IntField(field.Name, (int)value);
-                            }
-                            else if (field.FieldType == typeof(ushort))
-                            {
-                                EditorGUILayout.IntField(field.Name, Convert.ToInt16((ushort)value));
-                            }
-                            else if (field.FieldType == typeof(int))
-                            {
-                                EditorGUILayout.IntField(field.Name, (int)value);
-                            }
-                            else if (field.FieldType == typeof(uint))
-                            {
-                                EditorGUILayout.IntField(field.Name, Convert.ToInt32((uint)value));
-                            }
-                            else if (field.FieldType == typeof(long))
-                            {
-                                EditorGUILayout.LongField(field.Name, (long)value);
-                            }
-                            else if (field.FieldType == typeof(ulong))
-                            {
-                                EditorGUILayout.LongField(field.Name, Convert.ToInt64((ulong)value));
-                            }
-                            else if (field.FieldType == typeof(float))
-                            {
-                                EditorGUILayout.FloatField(field.Name, (float)value);
-                            }
-                            else if (field.FieldType == typeof(double))
-                            {
-                                EditorGUILayout.DoubleField(field.Name, (double)value);
-                            }
-                            else if (field.FieldType == typeof(Color))
-                            {
-                                EditorGUILayout.ColorField(field.Name, (Color)value);
-                            }
-                            else if (field.FieldType == typeof(Vector2))
-                            {
-                                EditorGUILayout.Vector2Field(field.Name, (Vector2)value);
-                            }
-                            else if (field.FieldType == typeof(Vector2Int))
-                            {
-                                EditorGUILayout.Vector2IntField(field.Name, (Vector2Int)value);
-                            }
-                            else if (field.FieldType == typeof(Vector3))
-                            {
-                                EditorGUILayout.Vector3Field(field.Name, (Vector3)value);
-                            }
-                            else if (field.FieldType == typeof(Vector3Int))
-                            {
-                                EditorGUILayout.Vector3IntField(field.Name, (Vector3Int)value);
-                            }
-                            else if (field.FieldType == typeof(Vector4))
-                            {
-                                EditorGUILayout.Vector4Field(field.Name, (Vector4)value);
-                            }
-                            else if (field.FieldType == typeof(Quaternion))
-                            {
-                                var quaternion = (Quaternion)value;
-                                EditorGUILayout.Vector4Field(field.Name,
-                                    new Vector4(quaternion.x, quaternion.y, quaternion.z, quaternion.w));
-                            }
-                            else if (field.FieldType.IsEnum)
-                            {
-                                EditorGUILayout.EnumPopup(field.Name, (Enum)value);
-                            }
-                            else if (field.FieldType == typeof(Friflo.Engine.ECS.Position))
-                            {
-                                var position = (Friflo.Engine.ECS.Position)value;
-                                EditorGUILayout.Vector4Field(field.Name,
-                                    new Vector3(position.x, position.y, position.z));
-                            }
-                            else if (value is UnityEngine.Object obj)
-                            {
-                                EditorGUILayout.ObjectField(field.Name, obj, field.FieldType, true);
-                            }
-                            else
-                            {
-                                EditorGUILayout.LabelField(field.Name, value?.ToString());
-                            }
-                        }
-                    }
-
-                    EditorGUILayout.EndFoldoutHeaderGroup();
-                }
-
-                EditorUtility.SetDirty(target);
-            }
-
-            /// <summary>
-            /// Gets the rainbow color using the specified index
-            /// </summary>
-            /// <param name="index">The index</param>
-            /// <returns>The color</returns>
-            private static Color GetRainbowColor(int index)
-            {
-                return Color.HSVToRGB(index / 16f % 1f, 1, 1);
-            }
         }
     }
 }
