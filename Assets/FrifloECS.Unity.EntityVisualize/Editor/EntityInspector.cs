@@ -31,6 +31,9 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
                 padding = new RectOffset(8, 8, 8, 8)
             };
             GUILayout.Label($"{_entityInfo}", style);
+
+            _entityInfo.OnInspectorGUI();
+            EditorUtility.SetDirty(target);
         }
 
         /// <summary>
@@ -38,9 +41,6 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// </summary>
         public override void OnInspectorGUI()
         {
-            if (_entityInfo == null) return;
-            _entityInfo.OnInspectorGUI();
-            EditorUtility.SetDirty(target);
         }
     }
 }

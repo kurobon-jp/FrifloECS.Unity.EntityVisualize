@@ -86,13 +86,11 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         public List<Entity> CollectEntities()
         {
             var entities = new List<Entity>();
-            if (_entityStore != null)
+            if (_entityStore == null) return entities;
+            foreach (var entity in _entityStore.Entities)
             {
-                foreach (var entity in _entityStore.Entities)
-                {
-                    if (entity.IsNull || !entity.Parent.IsNull) continue;
-                    entities.Add(entity);
-                }
+                if (entity.IsNull || !entity.Parent.IsNull) continue;
+                entities.Add(entity);
             }
 
             return entities;
@@ -103,9 +101,19 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             var entity = _entityStore.GetEntityById(id);
             if (entity.IsNull) return null;
             var entityInfo = new EntityInfo(entity);
+            foreach (var tag in entity.Tags)
+            {
+                entityInfo.Add(tag);
+            }
+
             foreach (var component in entity.Components)
             {
                 entityInfo.Add(new ComponentInfo(component));
+            }
+
+            foreach (var script in entity.Scripts)
+            {
+                entityInfo.Add(script);
             }
 
             return entityInfo;

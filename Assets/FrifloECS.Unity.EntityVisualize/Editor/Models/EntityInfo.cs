@@ -18,6 +18,10 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
         /// </summary>
         public List<ComponentInfo> Components { get; } = new();
 
+        public List<TagType> Tags { get; } = new();
+        
+        public List<Script> Scripts { get; } = new();
+        
         public EntityInfo(Entity entity)
         {
             Id = entity.Id;
@@ -30,6 +34,16 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
         public void Add(ComponentInfo value)
         {
             Components.Add(value);
+        }
+        
+        public void Add(TagType value)
+        {
+            Tags.Add(value);
+        }
+        
+        public void Add(Script value)
+        {
+            Scripts.Add(value);
         }
 
         /// <summary>
