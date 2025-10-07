@@ -28,20 +28,22 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
                         ComponentFoldouts.TryGetValue(componentType, out var foldout);
                         var rect = EditorGUILayout.GetControlRect();
                         var width = rect.width;
-                        EditorGUI.DrawRect(rect, GetRainbowColor(color++));
                         rect.x += 15;
+                        rect.width -= 15;
+                        EditorGUI.DrawRect(rect, GetRainbowColor(color++));
+                        rect.x += 5;
                         rect.width -= 35;
                         foldout = EditorGUI.Foldout(rect, foldout, componentInfo.ComponentName, true);
                         ComponentFoldouts[componentType] = foldout;
                         if (foldout)
                         {
-                            EditorGUI.indentLevel++;
+                            EditorGUI.indentLevel += 2;
                             componentInfo.OnInspectorGUI(Entity);
-                            EditorGUI.indentLevel--;
+                            EditorGUI.indentLevel -= 2;
                         }
 
                         rect.width = 25;
-                        rect.x = width - 10;
+                        rect.x = width - 25;
                         if (GUI.Button(rect, "-", EditorStyles.miniButton))
                         {
                             EntityUtils.RemoveEntityComponent(Entity, componentType);
@@ -64,12 +66,14 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
                         var tag = Tags[i];
                         var rect = EditorGUILayout.GetControlRect();
                         var width = rect.width;
+                        rect.x += 15;
+                        rect.width -= 15;
                         EditorGUI.DrawRect(rect, GetRainbowColor(color++));
                         rect.x += 5;
                         rect.width -= 35;
                         EditorGUI.LabelField(rect, tag.TagName, EditorStyles.boldLabel);
                         rect.width = 25;
-                        rect.x = width - 10;
+                        rect.x = width - 25;
                         if (GUI.Button(rect, "-", EditorStyles.miniButton))
                         {
                             Entity.RemoveTags(new Tags(tag));
@@ -91,8 +95,11 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
                     {
                         var script = Scripts[i];
                         var rect = EditorGUILayout.GetControlRect();
+                        rect.x += 15;
+                        rect.width -= 15;
                         EditorGUI.DrawRect(rect, GetRainbowColor(color++));
                         rect.x += 5;
+                        rect.width -= 5;
                         EditorGUI.LabelField(rect, script.GetType().Name, EditorStyles.boldLabel);
                     }
                 }

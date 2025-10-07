@@ -26,6 +26,9 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             _entityInfo = _window.GetSelectedEntityInfo();
             if (_entityInfo == null) return;
             DrawCustomHeader($"{_entityInfo}");
+            _entityInfo.OnInspectorGUI();
+            EditorUtility.SetDirty(target);
+            GUILayout.Space(10);
         }
 
         /// <summary>
@@ -33,9 +36,6 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// </summary>
         public override void OnInspectorGUI()
         {
-            if (_entityInfo == null) return;
-            _entityInfo.OnInspectorGUI();
-            EditorUtility.SetDirty(target);
         }
 
         private void DrawCustomHeader(string title)
@@ -54,11 +54,11 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             var menuRect = new Rect(rect.xMax - 25, rect.y + 2, 20, 20);
             if (GUI.Button(menuRect, EditorGUIUtility.IconContent("_Menu"), GUIStyle.none))
             {
-                ShowHeaderMenu();
+                CreateHeaderMenu();
             }
         }
 
-        private void ShowHeaderMenu()
+        private void CreateHeaderMenu()
         {
             var menu = new GenericMenu();
             menu.AddItem(new GUIContent("Delete Entity"), false, DeleteEntity);
