@@ -181,7 +181,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             }
 
             _toolbarMenu.menu.AppendAction(name, _ => { OnSwitchEntityStore(store); }, status: status);
- }
+        }
 
         /// <summary>
         /// Ons the double click
@@ -329,8 +329,9 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// <returns>The bool</returns>
         private bool CreateTreeViewItemData(Entity entity, CancellationToken token, ref TreeViewItemData<Item> itemData)
         {
+            if (entity.IsNull) return false;
             List<TreeViewItemData<Item>> children = null;
-            if (entity is { IsNull: false, ChildCount: > 0 })
+            if (entity.ChildCount > 0)
             {
                 foreach (var childEntity in entity.ChildEntities)
                 {
@@ -345,7 +346,16 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             }
 
             token.ThrowIfCancellationRequested();
-            var entityName = $"{entity}";
+            string entityName;
+            try
+            {
+                entityName = $"{entity}";
+            }
+            catch
+            {
+                return false;
+            }
+
             if (!string.IsNullOrEmpty(_searchText) && !entityName.Contains(_searchText) && children == null)
             {
                 return false;

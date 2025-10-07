@@ -1,6 +1,5 @@
 # Friflo.Engine.ECS Unity EntityVisualize
-This library displays a list of structure [Friflo.Engine.ECS](https://github.com/friflo/Friflo.Engine.ECS) entities and their structure in the Unity Inspector.<br>
-*Rewriting values ​​is not supported.
+This library displays a list of structure [Friflo.Engine.ECS](https://github.com/friflo/Friflo.Engine.ECS) entities and their structure in the Unity Inspector.
 
 # Requirement
 - Unity 2022.1 higher
