@@ -21,7 +21,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
 
                 using (new GUILayout.HorizontalScope())
                 {
-                    GUILayout.Space(15);
+                    // GUILayout.Space(15);
                     for (var i = 0; i < Tags.Count; i++)
                     {
                         var tag = Tags[i];
@@ -50,7 +50,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
 
                 using (new GUILayout.HorizontalScope())
                 {
-                    GUILayout.Space(15);
+                    // GUILayout.Space(15);
                     using (new GUILayout.VerticalScope())
                     {
                         for (var i = 0; i < Components.Count; i++)
@@ -61,7 +61,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
                             var rect = EditorGUILayout.GetControlRect();
                             var width = rect.width;
                             EditorGUI.DrawRect(rect, GetRainbowColor(color++));
-                            rect.x += 5;
+                            rect.x += 15;
                             rect.width -= 35;
                             foldout = EditorGUI.Foldout(rect, foldout, componentInfo.ComponentName, true);
                             ComponentFoldouts[componentType] = foldout;
@@ -92,7 +92,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
 
                 using (new GUILayout.HorizontalScope())
                 {
-                    GUILayout.Space(15);
+                    // GUILayout.Space(15);
                     for (var i = 0; i < Scripts.Count; i++)
                     {
                         var script = Scripts[i];
