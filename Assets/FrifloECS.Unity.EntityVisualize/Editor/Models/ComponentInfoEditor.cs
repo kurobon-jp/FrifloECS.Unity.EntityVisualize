@@ -1,43 +1,50 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Reflection;
+using Friflo.Engine.ECS;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace FrifloECS.Unity.EntityVisualize.Editor.Models
 {
     public partial class ComponentInfo
     {
-        private static readonly Dictionary<Type, Action<string, object>> FieldGUILayouts = new()
+        private static readonly Dictionary<Type, Func<string, object, object>> FieldDrawers = new()
         {
             {
-                typeof(string), (fieldName, value) => EditorGUILayout.LabelField(fieldName, (string)value)
+                typeof(string), (fieldName, value) => EditorGUILayout.TextField(fieldName, (string)value)
             },
             {
                 typeof(bool), (fieldName, value) => EditorGUILayout.Toggle(fieldName, (bool)value)
             },
             {
-                typeof(byte), (fieldName, value) => EditorGUILayout.LabelField(fieldName, (string)value)
+                typeof(byte), (fieldName, value) => (byte)EditorGUILayout.IntField(fieldName, (int)value)
             },
             {
-                typeof(short), (fieldName, value) => EditorGUILayout.IntField(fieldName, (int)value)
+                typeof(short), (fieldName, value) => (short)EditorGUILayout.IntField(fieldName, (int)value)
             },
             {
                 typeof(ushort),
-                (fieldName, value) => EditorGUILayout.IntField(fieldName, Convert.ToInt16((ushort)value))
+                (fieldName, value) =>
+                    (ushort)Mathf.Max(EditorGUILayout.IntField(fieldName, Convert.ToInt16((ushort)value)), 0)
             },
             {
                 typeof(int), (fieldName, value) => EditorGUILayout.IntField(fieldName, (int)value)
             },
             {
                 typeof(uint),
-                (fieldName, value) => EditorGUILayout.IntField(fieldName, Convert.ToInt32((uint)value))
+                (fieldName, value) =>
+                    (uint)Mathf.Max(EditorGUILayout.IntField(fieldName, Convert.ToInt32((uint)value)), 0)
             },
             {
                 typeof(long), (fieldName, value) => EditorGUILayout.LongField(fieldName, (long)value)
             },
             {
                 typeof(ulong),
-                (fieldName, value) => EditorGUILayout.LongField(fieldName, Convert.ToInt64((ulong)value))
+                (fieldName, value) =>
+                    (ulong)Mathf.Max(EditorGUILayout.LongField(fieldName, Convert.ToInt64((ulong)value)), 0)
             },
             {
                 typeof(float), (fieldName, value) => EditorGUILayout.FloatField(fieldName, (float)value)
@@ -45,7 +52,6 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
             {
                 typeof(double), (fieldName, value) => EditorGUILayout.DoubleField(fieldName, (double)value)
             },
-
             {
                 typeof(Color), (fieldName, value) => EditorGUILayout.ColorField(fieldName, (Color)value)
             },
@@ -67,25 +73,45 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
                 typeof(Vector4), (fieldName, value) => EditorGUILayout.Vector4Field(fieldName, (Vector4)value)
             },
             {
+                typeof(Rect), (fieldName, value) => EditorGUILayout.RectField(fieldName, (Rect)value)
+            },
+            {
+                typeof(RectInt), (fieldName, value) => EditorGUILayout.RectIntField(fieldName, (RectInt)value)
+            },
+            {
                 typeof(Quaternion), (fieldName, value) =>
                 {
                     var quaternion = (Quaternion)value;
-                    EditorGUILayout.Vector4Field(fieldName,
+                    var vec4 = EditorGUILayout.Vector4Field(fieldName,
                         new Vector4(quaternion.x, quaternion.y, quaternion.z, quaternion.w));
+                    return new Quaternion(vec4.x, vec4.y, vec4.z, vec4.w);
                 }
             },
             {
-                typeof(Friflo.Engine.ECS.Position),
+                typeof(Position),
                 (fieldName, value) =>
                 {
-                    var position = (Friflo.Engine.ECS.Position)value;
-                    EditorGUILayout.Vector4Field(fieldName,
+                    var position = (Position)value;
+                    var vec3 = EditorGUILayout.Vector3Field(fieldName,
                         new Vector3(position.x, position.y, position.z));
+                    return new Position(vec3.x, vec3.y, vec3.z);
+                }
+            },
+            {
+                typeof(Scale3),
+                (fieldName, value) =>
+                {
+                    var scale = (Scale3)value;
+                    var vec3 = EditorGUILayout.Vector3Field(fieldName,
+                        new Vector3(scale.x, scale.y, scale.z));
+                    return new Scale3(vec3.x, vec3.y, vec3.z);
                 }
             }
         };
 
-        public void OnInspectorGUI()
+        private static readonly Dictionary<Type, FieldInfo[]> FieldsCache = new();
+
+        public void OnInspectorGUI(Entity entity)
         {
             object component;
             try
@@ -97,26 +123,66 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
                 return;
             }
 
-            foreach (var field in component.GetType().GetFields())
+            var changed = false;
+            var componentType = component.GetType();
+            if (!FieldsCache.TryGetValue(componentType, out var fields))
             {
-                var value = field.GetValue(component);
-                var type = field.FieldType;
-                if (FieldGUILayouts.TryGetValue(type, out var onGUILayout))
+                FieldsCache[componentType] =
+                    fields = componentType.GetFields(BindingFlags.Instance | BindingFlags.Public);
+            }
+
+            foreach (var field in fields)
+            {
+                var fieldType = field.FieldType;
+                if (field.IsDefined(typeof(DebuggerBrowsableAttribute), true))
                 {
-                    onGUILayout(field.Name, value);
+                    continue;
                 }
-                else if (type.IsEnum)
+
+                var isInitOnly = field.IsInitOnly;
+                if (isInitOnly)
                 {
-                    EditorGUILayout.EnumPopup(field.Name, (Enum)value);
-                }
-                else if (value is UnityEngine.Object obj)
-                {
-                    EditorGUILayout.ObjectField(field.Name, obj, type, true);
+                    EditorGUI.BeginDisabledGroup(true);
                 }
                 else
                 {
-                    EditorGUILayout.LabelField(field.Name, value?.ToString());
+                    EditorGUI.BeginChangeCheck();
                 }
+
+                var value = field.GetValue(component);
+                object newValue = null;
+                if (FieldDrawers.TryGetValue(fieldType, out var drawer))
+                {
+                    newValue = drawer(field.Name, value);
+                }
+                else if (fieldType.IsEnum)
+                {
+                    newValue = EditorGUILayout.EnumPopup(field.Name, (Enum)value);
+                }
+                else if (typeof(Object).IsAssignableFrom(fieldType))
+                {
+                    newValue = EditorGUILayout.ObjectField(field.Name, (Object)value, fieldType, false);
+                }
+                else
+                {
+                    value ??= "null";
+                    EditorGUILayout.LabelField(field.Name, value.ToString());
+                }
+
+                if (isInitOnly)
+                {
+                    EditorGUI.EndDisabledGroup();
+                }
+                else if (EditorGUI.EndChangeCheck())
+                {
+                    field.SetValue(component, newValue);
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                EntityUtils.AddEntityComponentValue(entity, EntityComponent.Type, component);
             }
         }
     }

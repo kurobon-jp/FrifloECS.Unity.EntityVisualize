@@ -25,6 +25,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
                 _entityStore.OnComponentRemoved -= OnComponentRemoved;
                 _entityStore.OnScriptAdded -= OnScriptAdded;
                 _entityStore.OnScriptRemoved -= OnScriptRemoved;
+                _entityStore.OnTagsChanged += OnTagsChanged;
             }
 
             _entityStore = entityStore;
@@ -38,6 +39,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
             _entityStore.OnComponentRemoved += OnComponentRemoved;
             _entityStore.OnScriptAdded += OnScriptAdded;
             _entityStore.OnScriptRemoved += OnScriptRemoved;
+            _entityStore.OnTagsChanged += OnTagsChanged;
         }
 
         private void OnComponentRemoved(ComponentChanged obj)
@@ -56,6 +58,11 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         }
 
         private void OnScriptAdded(ScriptChanged obj)
+        {
+            IsDirty = true;
+        }
+
+        private void OnTagsChanged(TagsChanged obj)
         {
             IsDirty = true;
         }

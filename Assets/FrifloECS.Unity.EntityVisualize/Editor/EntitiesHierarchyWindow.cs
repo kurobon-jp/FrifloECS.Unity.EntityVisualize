@@ -262,6 +262,10 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         {
             _cancellationTokenSource?.Cancel();
             Selection.activeObject = null;
+            _rootItems.Clear();
+            _treeView.SetRootItems(_rootItems);
+            _treeView.ClearSelection();
+            _treeView.Rebuild();
         }
 
         /// <summary>

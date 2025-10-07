@@ -8,6 +8,8 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
     /// </summary>
     public partial class EntityInfo
     {
+        public Entity Entity  { get; }
+        
         /// <summary>
         /// Gets the value of the entity id
         /// </summary>
@@ -24,6 +26,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
         
         public EntityInfo(Entity entity)
         {
+            Entity = entity;
             Id = entity.Id;
         }
 
