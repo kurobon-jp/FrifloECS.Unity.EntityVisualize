@@ -42,10 +42,18 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
                             EditorGUI.indentLevel -= 2;
                         }
 
-                        rect.width = 25;
-                        rect.x = width - 25;
-                        if (GUI.Button(rect, "-", EditorStyles.miniButton))
+                        rect.width = 20;
+                        rect.x = width - 20;
+                        if (GUI.Button(rect, "x", EditorStyles.miniButton))
                         {
+                            if (componentType.Type == typeof(TreeNode))
+                            {
+                                while (Entity.ChildCount > 0)
+                                {
+                                    Entity.RemoveChild(Entity.ChildEntities[0]);
+                                }
+                            }
+
                             EntityUtils.RemoveEntityComponent(Entity, componentType);
                         }
                     }
@@ -72,9 +80,9 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
                         rect.x += 5;
                         rect.width -= 35;
                         EditorGUI.LabelField(rect, tag.TagName, EditorStyles.boldLabel);
-                        rect.width = 25;
-                        rect.x = width - 25;
-                        if (GUI.Button(rect, "-", EditorStyles.miniButton))
+                        rect.width = 20;
+                        rect.x = width - 20;
+                        if (GUI.Button(rect, "x", EditorStyles.miniButton))
                         {
                             Entity.RemoveTags(new Tags(tag));
                         }
