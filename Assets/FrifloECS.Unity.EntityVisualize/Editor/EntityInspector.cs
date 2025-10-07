@@ -38,6 +38,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         /// </summary>
         public override void OnInspectorGUI()
         {
+            if (_entityInfo == null) return;
             _entityInfo.OnInspectorGUI();
             EditorUtility.SetDirty(target);
         }
