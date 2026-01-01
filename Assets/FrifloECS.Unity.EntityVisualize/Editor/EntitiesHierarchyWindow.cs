@@ -90,6 +90,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
         {
             EntityVisualizer.OnRegistered -= OnStoreRegistered;
             EntityVisualizer.OnRegistered += OnStoreRegistered;
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
         }
 
