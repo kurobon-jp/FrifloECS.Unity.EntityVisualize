@@ -25,7 +25,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor
                 _entityStore.OnComponentRemoved -= OnComponentRemoved;
                 _entityStore.OnScriptAdded -= OnScriptAdded;
                 _entityStore.OnScriptRemoved -= OnScriptRemoved;
-                _entityStore.OnTagsChanged += OnTagsChanged;
+                _entityStore.OnTagsChanged -= OnTagsChanged;
             }
 
             _entityStore = entityStore;
