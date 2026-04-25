@@ -124,7 +124,7 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
             }
 
             var changed = false;
-            var componentType = component.GetType();
+            var componentType = ComponentType;
             if (!FieldsCache.TryGetValue(componentType, out var fields))
             {
                 FieldsCache[componentType] =

@@ -1,3 +1,4 @@
+using System;
 using Friflo.Engine.ECS;
 
 namespace FrifloECS.Unity.EntityVisualize.Editor.Models
@@ -12,14 +13,18 @@ namespace FrifloECS.Unity.EntityVisualize.Editor.Models
         /// </summary>
         public EntityComponent EntityComponent { get; }
 
+        public Type ComponentType { get; }
+
         /// <summary>
         /// Gets the value of the component name
         /// </summary>
-        public string ComponentName => EntityComponent.Type.Name;
+        public string ComponentName { get; }
 
         public ComponentInfo(EntityComponent entityComponent)
         {
             EntityComponent = entityComponent;
+            ComponentType = entityComponent.Type.Type;
+            ComponentName = ComponentType.Name;
         }
     }
 }
