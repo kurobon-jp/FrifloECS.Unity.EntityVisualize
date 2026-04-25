@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>
     <id>Friflo.Engine.ECS</id>
-    <version>3.4.2</version>
+    <version>3.6.0</version>
     <title>Friflo Engine ECS</title>
     <authors>Ullrich Praetz</authors>
     <license type="expression">MIT</license>
@@ -13,7 +13,7 @@
     <description>Entity Component System - ECS - optimized for performance and cache locality</description>
     <copyright>Ullrich Praetz</copyright>
     <tags>ecs, entity-component-system, gamedev, game-engine, unity, godot, monogame, fna, stride, flax, dots, entt, flecs</tags>
-    <repository type="git" url="https://github.com/friflo/Friflo.Engine.ECS" commit="531ca009db4578f89e87fa86f44c77eb729c0f09" />
+    <repository type="git" url="https://github.com/friflo/Friflo.Engine.ECS" commit="c326ceb2076d7d14c0ae74df0e661c62aedd8d24" />
     <dependencies>
       <group targetFramework="net6.0">
         <dependency id="Friflo.Json.Fliox" version="1.0.4" exclude="Build,Analyzers" />

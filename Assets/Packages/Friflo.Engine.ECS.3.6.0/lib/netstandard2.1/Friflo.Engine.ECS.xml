@@ -745,6 +745,42 @@
         <member name="M:Friflo.Engine.ECS.GenericInstanceTypeAttribute.#ctor(System.String,System.Type,System.Type,System.Type)">
             <summary> Register generic component / tag type with three generic parameters. </summary>
         </member>
+        <member name="T:Friflo.Engine.ECS.BlittableTypeAttribute">
+            <summary>
+            The annotated type behaves as a value type.<br/>
+            Instances of these type can be copied in <see cref="M:Friflo.Engine.ECS.Entity.CopyEntity(Friflo.Engine.ECS.Entity)"/> or <see cref="M:Friflo.Engine.ECS.EntityStore.CloneEntity(Friflo.Engine.ECS.Entity)"/>
+            without the need of a <c>CopyValue()</c> method.
+            </summary>
+        </member>
+        <member name="T:Friflo.Engine.ECS.QueryAttribute">
+            <summary>
+            Creates an additional query method for the annotated method. New method has suffix <c>...Query()</c>.<br/>
+            The generated query method filters all components declared as parameters + additional filters added with attributes.<br/>
+            See <a href="https://friflo.gitbook.io/friflo.engine.ecs/documentation/query-optimization#query-generator">Query Generator.</a>
+            </summary>
+            <remarks>
+            The parameter values of the annotated <c>[Query]</c> method depend on their <c>Type</c>:
+            <list type="bullet">
+              <item> Component types      - the component values of a matching entity. </item>
+              <item> <c>Entity entity</c> - the current iterated entity. </item>
+              <item> Other types          - are set by the values passed to generated <c>...Query()</c> method call. </item>
+            </list>
+            Component filter attributes
+            <code>
+                [AllComponents&lt;>]
+                [AnyComponents&lt;>]
+                [WithoutAllComponents&lt;>]
+                [WithoutAnyComponents&lt;>]
+            </code>
+            Tag filter attributes
+            <code>
+                [AllTags&lt;>]
+                [AnyTags&lt;>]
+                [WithoutAllTags&lt;>]
+                [WithoutAnyTags&lt;>]
+            </code>
+            </remarks>
+        </member>
         <member name="T:Friflo.Engine.ECS.UiDragAttribute">
             <summary>
             Enables changing a number field or property with mouse dragging in EcGui.
@@ -1658,6 +1694,77 @@
             It also enables to apply vectorization without a remainder loop.<br/>
             </remarks>
         </member>
+        <member name="T:Friflo.Engine.ECS.MapComponentAttribute">
+            <summary>
+            Maps a component type to an enum id.<br/>
+            This enables the use of switch statements on component types using <see cref="M:Friflo.Engine.ECS.ComponentType.AsEnum``1"/>.<br/>
+            E.g. when iterating <see cref="P:Friflo.Engine.ECS.Entity.Components"/> or <see cref="P:Friflo.Engine.ECS.Archetype.ComponentTypes"/>.<br/>
+            Or to handle specific <see cref="T:Friflo.Engine.ECS.ComponentType"/>'s in event handlers like <see cref="T:Friflo.Engine.ECS.ComponentChanged"/>.<br/>
+            It also improves project overview by grouping a domain of component types to an enum.
+            </summary>
+            <remarks>
+            <b>Note</b>: use non-generic attribute only for C# 10 or lower<br/>
+            Usage:<br/>
+            Declare an <c>enum</c> and map component types to enum ids with <c>[MapComponent()]</c>.
+            <code>
+            public enum CombatType
+            {
+                Undefined = 0, // 0 => unmapped component types switch to default case 
+                [MapComponent(typeof(Melee))]   Melee,
+                [MapComponent(typeof(Ranged))]  Ranged,
+                [MapComponent(typeof(Tank))]    Tank,
+            }
+            </code>
+            <code>
+            // switch statement on enum CombatType
+            foreach (var component in entity.Components)
+            {
+                var combatId = component.Type.AsEnum&lt;CombatType>();
+                switch (combatId) {
+                    case CombatType.Melee:  var ranged = entity.GetComponent&lt;Melee>(); ...  break;
+                    case CombatType.Ranged: ...  break;
+                    case CombatType.Tank:   ...  break;
+                    default:                ...  break;
+                }
+            }
+            </code>
+            </remarks>
+        </member>
+        <member name="T:Friflo.Engine.ECS.MapComponentAttribute`1">
+            <summary>
+            Maps a component type to an enum id.<br/>
+            This enables the use of switch statements on component types using <see cref="M:Friflo.Engine.ECS.ComponentType.AsEnum``1"/>.<br/>
+            E.g. when iterating <see cref="P:Friflo.Engine.ECS.Entity.Components"/> or <see cref="P:Friflo.Engine.ECS.Archetype.ComponentTypes"/>.<br/>
+            Or to handle specific <see cref="T:Friflo.Engine.ECS.ComponentType"/>'s in event handlers like <see cref="T:Friflo.Engine.ECS.ComponentChanged"/>.<br/>
+            It also improves project overview by grouping a domain of component types to an enum.
+            </summary>
+            <remarks>
+            Usage:<br/>
+            Declare an <c>enum</c> and map component types to enum ids with <c>[MapComponent()]</c>.
+            <code>
+            public enum CombatType
+            {
+                Undefined = 0, // 0 => unmapped component types switch to default case 
+                [MapComponent&lt;Melee>]    Melee,
+                [MapComponent&lt;Ranged>]   Ranged,
+                [MapComponent&lt;Tank>]     Tank,
+            }
+            </code>
+            <code>
+            // switch statement on enum CombatType
+            foreach (var component in entity.Components)
+            {
+                var combatId = component.Type.AsEnum&lt;CombatType>();
+                switch (combatId) {
+                    case CombatType.Melee:  var melee = entity.GetComponent&lt;Melee>(); ...  break;
+                    case CombatType.Ranged: ...  break;
+                    case CombatType.Tank:   ...  break;
+                    default:                ...  break;
+                }
+            }
+            </code>
+            </remarks>
+        </member>
         <member name="T:Friflo.Engine.ECS.ComponentType">
             <summary>
             Provide meta data for an <see cref="T:Friflo.Engine.ECS.IComponent"/> struct.
@@ -1671,6 +1778,14 @@
         </member>
         <member name="F:Friflo.Engine.ECS.ComponentType.StructSize">
             <summary> The size in bytes of the <see cref="T:Friflo.Engine.ECS.IComponent"/> struct. </summary>
+        </member>
+        <member name="M:Friflo.Engine.ECS.ComponentType.AsEnum``1">
+            <summary>
+            Returns the enum id mapped to a component type with a <c>[MapComponent()]</c> attribute.<br/>
+            Returns 0 if the component type is not mapped.<br/>
+            Usage see: <see cref="T:Friflo.Engine.ECS.MapComponentAttribute`1"/>.
+            </summary>
+            <remarks> Executes in O(1). Simply an array index lookup. </remarks>
         </member>
         <member name="T:Friflo.Engine.ECS.ScriptType">
             <summary>
@@ -1691,6 +1806,77 @@
             Unity initializes static fields of generic types already when creating an instance of that type.
             </remarks>
         </member>
+        <member name="T:Friflo.Engine.ECS.MapTagAttribute">
+            <summary>
+            Maps a tag type to an enum id.<br/>
+            This enables the use of switch statements on tag types using <see cref="M:Friflo.Engine.ECS.TagType.AsEnum``1"/>.<br/>
+            E.g. when iterating <see cref="P:Friflo.Engine.ECS.Entity.Tags"/> or <see cref="P:Friflo.Engine.ECS.Archetype.Tags"/>.<br/>
+            Or to handle specific <see cref="T:Friflo.Engine.ECS.TagType"/>'s in event handlers like <see cref="T:Friflo.Engine.ECS.TagsChanged"/>.<br/>
+            It also improves project overview by grouping a domain of tag types to an enum.
+            </summary>
+            <remarks>
+            <b>Note</b>: use non-generic attribute only for C# 10 or lower<br/>
+            Usage:<br/>
+            Declare an <c>enum</c> and map tag types to enum ids with <c>[MapTag()]</c>.
+            <code>
+            public enum CombatTags
+            {
+                Undefined = 0, // 0 => unmapped tag types switch to default case 
+                [MapTag(typeof(MeleeTag))]      Melee,
+                [MapTag(typeof(RangedTag))]     Ranged,
+                [MapTag(typeof(TankTag))]       Tank,
+            }
+            </code>
+            <code>
+            // switch statement on enum CombatTags
+            foreach (var tag in entity.Tags)
+            {
+                var combatId = tag.AsEnum&lt;CombatTags>();
+                switch (combatId) {
+                    case CombatTags.Melee:  ...  break;
+                    case CombatTags.Ranged: ...  break;
+                    case CombatTags.Tank:   ...  break;
+                    default:                ...  break;
+                }
+            }
+            </code>
+            </remarks>
+        </member>
+        <member name="T:Friflo.Engine.ECS.MapTagAttribute`1">
+            <summary>
+            Maps a tag type to an enum id.<br/>
+            This enables the use of switch statements on tag types using <see cref="M:Friflo.Engine.ECS.TagType.AsEnum``1"/>.<br/>
+            E.g. when iterating <see cref="P:Friflo.Engine.ECS.Entity.Tags"/> or <see cref="P:Friflo.Engine.ECS.Archetype.Tags"/>.<br/>
+            Or to handle specific <see cref="T:Friflo.Engine.ECS.TagType"/>'s in event handlers like <see cref="T:Friflo.Engine.ECS.TagsChanged"/>.<br/>
+            It also improves project overview by grouping a domain of tag types to an enum.
+            </summary>
+            <remarks>
+            Usage:<br/>
+            Declare an <c>enum</c> and map tag types to enum ids with <c>[MapTag()]</c>.
+            <code>
+            public enum CombatTags
+            {
+                Undefined = 0, // 0 => unmapped tag types switch to default case
+                [MapTag&lt;MeleeTag>]   Melee,
+                [MapTag&lt;RangedTag>]  Ranged,
+                [MapTag&lt;TankTag>]    Tank,
+            }
+            </code>
+            <code>
+            // switch statement on enum CombatTags
+            foreach (var tag in entity.Tags)
+            {
+                var combatId = tag.AsEnum&lt;CombatTags>();
+                switch (combatId) {
+                    case CombatTags.Melee:  ...  break;
+                    case CombatTags.Ranged: ...  break;
+                    case CombatTags.Tank:   ...  break;
+                    default:                ...  break;
+                }
+            }
+            </code>
+            </remarks>
+        </member>
         <member name="T:Friflo.Engine.ECS.TagType">
             <summary>
             Provide meta data for an <see cref="T:Friflo.Engine.ECS.ITag"/> struct.
@@ -1701,6 +1887,14 @@
         </member>
         <member name="F:Friflo.Engine.ECS.TagType.TagIndex">
             <summary> The index in <see cref="T:Friflo.Engine.ECS.EntitySchema"/>.<see cref="P:Friflo.Engine.ECS.EntitySchema.Tags"/>. </summary>
+        </member>
+        <member name="M:Friflo.Engine.ECS.TagType.AsEnum``1">
+            <summary>
+            Returns the enum id mapped to a tag type with a <c>[MapTag()]</c> attribute.<br/>
+            Returns 0 if the tag type is not mapped.<br/>
+            See example: <see cref="T:Friflo.Engine.ECS.MapTagAttribute`1"/>
+            </summary>
+            <remarks> Executes in O(1). Simply an array index lookup. </remarks>
         </member>
         <member name="T:Friflo.Engine.ECS.BatchAlreadyReturnedException">
             <summary>
@@ -2440,6 +2634,18 @@
         <member name="P:Friflo.Engine.ECS.EntityStore.NodeMaxId">
             <summary> Return the largest entity <see cref="F:Friflo.Engine.ECS.Entity.Id"/> store in the entity store. </summary>
         </member>
+        <member name="M:Friflo.Engine.ECS.EntityStore.UserDataGet(Friflo.Engine.ECS.EntityStore,System.Int32)">
+            <summary> Method not intended to be used by user code. </summary>
+            <remarks> Method is used for generated query methods. </remarks>
+        </member>
+        <member name="M:Friflo.Engine.ECS.EntityStore.UserDataSet(Friflo.Engine.ECS.EntityStore,System.Int32,System.Object)">
+            <summary> Method not intended to be used by user code. </summary>
+            <remarks> Method is used for generated query methods. </remarks>
+        </member>
+        <member name="M:Friflo.Engine.ECS.EntityStore.UserDataNewSlot">
+            <summary> Method not intended to be used by user code. </summary>
+            <remarks> Method is used for generated query methods. </remarks>
+        </member>
         <member name="E:Friflo.Engine.ECS.EntityStore.OnChildEntitiesChanged">
             <summary>Add / remove an event handler for <see cref="T:Friflo.Engine.ECS.ChildEntitiesChanged"/> events triggered by:<br/>
             <see cref="M:Friflo.Engine.ECS.Entity.AddChild(Friflo.Engine.ECS.Entity)"/> <br/> <see cref="M:Friflo.Engine.ECS.Entity.InsertChild(System.Int32,Friflo.Engine.ECS.Entity)"/> <br/> <see cref="M:Friflo.Engine.ECS.Entity.RemoveChild(Friflo.Engine.ECS.Entity)"/>.</summary>
@@ -2966,7 +3172,7 @@
             <summary>Add the given <paramref name="tags"/> to the entity.</summary>
         </member>
         <member name="M:Friflo.Engine.ECS.Entity.RemoveTag``1">
-            <summary>Add the given <typeparamref name="TTag"/> from the entity.</summary>
+            <summary>Remove the given <typeparamref name="TTag"/> from the entity.</summary>
         </member>
         <member name="M:Friflo.Engine.ECS.Entity.RemoveTags(Friflo.Engine.ECS.Tags@)">
             <summary>Remove the given <paramref name="tags"/> from the entity.</summary>
@@ -3873,6 +4079,9 @@
         </member>
         <member name="P:Friflo.Engine.ECS.ComponentChanged.ComponentType">
             <summary>The <see cref="T:Friflo.Engine.ECS.ComponentType"/> of the added / removed component.</summary>
+            <remarks>
+            Use <see cref="M:Friflo.Engine.ECS.ComponentType.AsEnum``1"/> to handle specific component types with a switch statement.
+            </remarks>
         </member>
         <member name="P:Friflo.Engine.ECS.ComponentChanged.Type">
             <summary>The <see cref="T:System.Type"/> of the added / removed component.</summary>
@@ -4085,9 +4294,41 @@
         </member>
         <member name="P:Friflo.Engine.ECS.TagsChanged.AddedTags">
             <summary>The <see cref="T:Friflo.Engine.ECS.Tags"/> added to the <see cref="P:Friflo.Engine.ECS.TagsChanged.Entity"/>.</summary>
+            <remarks>
+            <see cref="P:Friflo.Engine.ECS.TagsChanged.AddedTags"/> typically contains no or only a single tag.<br/>
+            In case having many <c>AddedTags.Has&lt;>()</c> branches consider using a <c>foreach</c> loop
+            and switch on <see cref="M:Friflo.Engine.ECS.TagType.AsEnum``1"/>.
+            <code>
+            foreach (var tag in AddedTags)
+            {
+                switch (tag.AsEnum&lt;CombatTags>()) {
+                    case CombatTags.Melee:  ... break;
+                    case CombatTags.Ranged: ... break;
+                    case CombatTags.Tank:   ... break;
+                    default:                ... break;
+                }
+            }
+            </code>
+            </remarks>
         </member>
         <member name="P:Friflo.Engine.ECS.TagsChanged.RemovedTags">
             <summary>The <see cref="T:Friflo.Engine.ECS.Tags"/> removed from the <see cref="P:Friflo.Engine.ECS.TagsChanged.Entity"/>.</summary>
+            <remarks>
+            <see cref="P:Friflo.Engine.ECS.TagsChanged.RemovedTags"/> typically contains no or only a single tag.<br/>
+            In case having many <c>RemovedTags.Has&lt;>()</c> branches consider using a <c>foreach</c> loop
+            and switch on <see cref="M:Friflo.Engine.ECS.TagType.AsEnum``1"/>.
+            <code>
+            foreach (var tag in RemovedTags)
+            {
+                switch (tag.AsEnum&lt;CombatTags>()) {
+                    case CombatTags.Melee:  ... break;
+                    case CombatTags.Ranged: ... break;
+                    case CombatTags.Tank:   ... break;
+                    default:                ... break;
+                }
+            }
+            </code>
+            </remarks>
         </member>
         <member name="P:Friflo.Engine.ECS.TagsChanged.ChangedTags">
             <summary>The changed (removed / added) entity <see cref="T:Friflo.Engine.ECS.Tags"/>.</summary>
@@ -4689,31 +4930,31 @@
             </summary>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`3.AllTags(Friflo.Engine.ECS.Tags@)">
-            <inheritdoc  cref="M:Friflo.Engine.ECS.ArchetypeQuery.AllTags(Friflo.Engine.ECS.Tags@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.AllTags(Friflo.Engine.ECS.Tags@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`3.AnyTags(Friflo.Engine.ECS.Tags@)">
-            <inheritdoc  cref="M:Friflo.Engine.ECS.ArchetypeQuery.AnyTags(Friflo.Engine.ECS.Tags@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.AnyTags(Friflo.Engine.ECS.Tags@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`3.WithDisabled">
-            <inheritdoc  cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithDisabled"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithDisabled"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`3.WithoutAllTags(Friflo.Engine.ECS.Tags@)">
-            <inheritdoc  cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAllTags(Friflo.Engine.ECS.Tags@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAllTags(Friflo.Engine.ECS.Tags@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`3.WithoutAnyTags(Friflo.Engine.ECS.Tags@)">
-            <inheritdoc  cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAnyTags(Friflo.Engine.ECS.Tags@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAnyTags(Friflo.Engine.ECS.Tags@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`3.AllComponents(Friflo.Engine.ECS.ComponentTypes@)">
-            <inheritdoc  cref="M:Friflo.Engine.ECS.ArchetypeQuery.AllComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.AllComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`3.AnyComponents(Friflo.Engine.ECS.ComponentTypes@)">
-            <inheritdoc  cref="M:Friflo.Engine.ECS.ArchetypeQuery.AnyComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.AnyComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`3.WithoutAllComponents(Friflo.Engine.ECS.ComponentTypes@)">
-            <inheritdoc  cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAllComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAllComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`3.WithoutAnyComponents(Friflo.Engine.ECS.ComponentTypes@)">
-            <inheritdoc  cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAnyComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAnyComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`3.HasValue``2(``1)">
             <inheritdoc cref="M:Friflo.Engine.ECS.QueryFilter.HasValue``2(``1)"/>
@@ -4722,13 +4963,13 @@
             <inheritdoc cref="M:Friflo.Engine.ECS.QueryFilter.ValueInRange``2(``1,``1)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`3.FreezeFilter">
-            <inheritdoc  cref="M:Friflo.Engine.ECS.ArchetypeQuery.FreezeFilter"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.FreezeFilter"/>
         </member>
         <member name="P:Friflo.Engine.ECS.ArchetypeQuery`3.Chunks">
             <summary>
             Return the <see cref="T:Friflo.Engine.ECS.Chunk`1"/>'s storing the components and entities of an <see cref="T:Friflo.Engine.ECS.ArchetypeQuery`3"/>.<br/>
             See <a href="https://friflo.gitbook.io/friflo.engine.ecs/documentation/query-optimization#enumerate-query-chunks">Example.</a>
-            </summary>
+            </summary> 
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`3.ForEach(System.Action{Friflo.Engine.ECS.Chunk{`0},Friflo.Engine.ECS.Chunk{`1},Friflo.Engine.ECS.Chunk{`2},Friflo.Engine.ECS.ChunkEntities})">
             <summary>
@@ -4783,31 +5024,31 @@
             </summary>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`4.AllTags(Friflo.Engine.ECS.Tags@)">
-            <inheritdoc      cref="M:Friflo.Engine.ECS.ArchetypeQuery.AllTags(Friflo.Engine.ECS.Tags@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.AllTags(Friflo.Engine.ECS.Tags@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`4.AnyTags(Friflo.Engine.ECS.Tags@)">
-            <inheritdoc      cref="M:Friflo.Engine.ECS.ArchetypeQuery.AnyTags(Friflo.Engine.ECS.Tags@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.AnyTags(Friflo.Engine.ECS.Tags@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`4.WithDisabled">
-            <inheritdoc      cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithDisabled"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithDisabled"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`4.WithoutAllTags(Friflo.Engine.ECS.Tags@)">
-            <inheritdoc      cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAllTags(Friflo.Engine.ECS.Tags@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAllTags(Friflo.Engine.ECS.Tags@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`4.WithoutAnyTags(Friflo.Engine.ECS.Tags@)">
-            <inheritdoc      cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAnyTags(Friflo.Engine.ECS.Tags@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAnyTags(Friflo.Engine.ECS.Tags@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`4.AllComponents(Friflo.Engine.ECS.ComponentTypes@)">
-            <inheritdoc      cref="M:Friflo.Engine.ECS.ArchetypeQuery.AllComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.AllComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`4.AnyComponents(Friflo.Engine.ECS.ComponentTypes@)">
-            <inheritdoc      cref="M:Friflo.Engine.ECS.ArchetypeQuery.AnyComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.AnyComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`4.WithoutAllComponents(Friflo.Engine.ECS.ComponentTypes@)">
-            <inheritdoc      cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAllComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAllComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`4.WithoutAnyComponents(Friflo.Engine.ECS.ComponentTypes@)">
-            <inheritdoc      cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAnyComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAnyComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`4.HasValue``2(``1)">
             <inheritdoc cref="M:Friflo.Engine.ECS.QueryFilter.HasValue``2(``1)"/>
@@ -4816,13 +5057,13 @@
             <inheritdoc cref="M:Friflo.Engine.ECS.QueryFilter.ValueInRange``2(``1,``1)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`4.FreezeFilter">
-            <inheritdoc      cref="M:Friflo.Engine.ECS.ArchetypeQuery.FreezeFilter"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.FreezeFilter"/>
         </member>
         <member name="P:Friflo.Engine.ECS.ArchetypeQuery`4.Chunks">
             <summary>
             Return the <see cref="T:Friflo.Engine.ECS.Chunk`1"/>'s storing the components and entities of an <see cref="T:Friflo.Engine.ECS.ArchetypeQuery`4"/>.<br/>
             See <a href="https://friflo.gitbook.io/friflo.engine.ecs/documentation/query-optimization#enumerate-query-chunks">Example.</a>
-            </summary>
+            </summary> 
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`4.ForEach(System.Action{Friflo.Engine.ECS.Chunk{`0},Friflo.Engine.ECS.Chunk{`1},Friflo.Engine.ECS.Chunk{`2},Friflo.Engine.ECS.Chunk{`3},Friflo.Engine.ECS.ChunkEntities})">
             <summary>
@@ -4877,31 +5118,31 @@
             </summary>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`5.AllTags(Friflo.Engine.ECS.Tags@)">
-            <inheritdoc          cref="M:Friflo.Engine.ECS.ArchetypeQuery.AllTags(Friflo.Engine.ECS.Tags@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.AllTags(Friflo.Engine.ECS.Tags@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`5.AnyTags(Friflo.Engine.ECS.Tags@)">
-            <inheritdoc          cref="M:Friflo.Engine.ECS.ArchetypeQuery.AnyTags(Friflo.Engine.ECS.Tags@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.AnyTags(Friflo.Engine.ECS.Tags@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`5.WithDisabled">
-            <inheritdoc          cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithDisabled"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithDisabled"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`5.WithoutAllTags(Friflo.Engine.ECS.Tags@)">
-            <inheritdoc          cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAllTags(Friflo.Engine.ECS.Tags@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAllTags(Friflo.Engine.ECS.Tags@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`5.WithoutAnyTags(Friflo.Engine.ECS.Tags@)">
-            <inheritdoc          cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAnyTags(Friflo.Engine.ECS.Tags@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAnyTags(Friflo.Engine.ECS.Tags@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`5.AllComponents(Friflo.Engine.ECS.ComponentTypes@)">
-            <inheritdoc          cref="M:Friflo.Engine.ECS.ArchetypeQuery.AllComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.AllComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`5.AnyComponents(Friflo.Engine.ECS.ComponentTypes@)">
-            <inheritdoc          cref="M:Friflo.Engine.ECS.ArchetypeQuery.AnyComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.AnyComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`5.WithoutAllComponents(Friflo.Engine.ECS.ComponentTypes@)">
-            <inheritdoc          cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAllComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAllComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`5.WithoutAnyComponents(Friflo.Engine.ECS.ComponentTypes@)">
-            <inheritdoc          cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAnyComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.WithoutAnyComponents(Friflo.Engine.ECS.ComponentTypes@)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`5.HasValue``2(``1)">
             <inheritdoc cref="M:Friflo.Engine.ECS.QueryFilter.HasValue``2(``1)"/>
@@ -4910,13 +5151,13 @@
             <inheritdoc cref="M:Friflo.Engine.ECS.QueryFilter.ValueInRange``2(``1,``1)"/>
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`5.FreezeFilter">
-            <inheritdoc          cref="M:Friflo.Engine.ECS.ArchetypeQuery.FreezeFilter"/>
+            <inheritdoc cref="M:Friflo.Engine.ECS.ArchetypeQuery.FreezeFilter"/>
         </member>
         <member name="P:Friflo.Engine.ECS.ArchetypeQuery`5.Chunks">
             <summary>
             Return the <see cref="T:Friflo.Engine.ECS.Chunk`1"/>'s storing the components and entities of an <see cref="T:Friflo.Engine.ECS.ArchetypeQuery`5"/>.<br/>
             See <a href="https://friflo.gitbook.io/friflo.engine.ecs/documentation/query-optimization#enumerate-query-chunks">Example.</a>
-            </summary>
+            </summary> 
         </member>
         <member name="M:Friflo.Engine.ECS.ArchetypeQuery`5.ForEach(System.Action{Friflo.Engine.ECS.Chunk{`0},Friflo.Engine.ECS.Chunk{`1},Friflo.Engine.ECS.Chunk{`2},Friflo.Engine.ECS.Chunk{`3},Friflo.Engine.ECS.Chunk{`4},Friflo.Engine.ECS.ChunkEntities})">
             <summary>
