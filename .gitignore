@@ -7,3 +7,4 @@ Temp
 *.user
 obj
 Logs
+.vscode
